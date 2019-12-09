@@ -44,7 +44,7 @@ func Test_EmptyRowsWithNonUniformColumns(t *testing.T) {
 
 	for i, test := range testCases {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			result := EmptyRowsWithNonUniformColumns(test.source)
+			result := SetRowsWithNonUniformColumnsNil(test.source)
 			assert.Equal(t, test.expected, result, "EmptyRowsWithNonUniformColumns")
 		})
 	}
@@ -112,7 +112,7 @@ func Test_CleanSpacedString(t *testing.T) {
 	}
 	for source, expected := range testCases {
 		t.Run(source, func(t *testing.T) {
-			cleaned, modified := CleanSpacedString(source)
+			cleaned, modified := compactSpacedString(source)
 			assert.Equal(t, expected, cleaned, "cleaned string")
 			assert.True(t, modified == (cleaned != source), "modified")
 		})

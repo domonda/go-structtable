@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/ungerik/go-fs"
 )
 
 func TestParseStrings(t *testing.T) {
@@ -138,12 +139,12 @@ func TestParseStrings(t *testing.T) {
 	for csvRow, ref := range testRows {
 		t.Run(csvRow, func(t *testing.T) {
 			refSeparator, refFields := ref[0], ref[1:]
-			rows, format, err := ParseStringsDetectFormat([]byte(csvRow), NewFormatDetectionConfig(), "\n")
+			rows, format, err := ParseStringsDetectFormat([]byte(csvRow), NewFormatDetectionConfig())
 			assert.NoError(t, err, "csv.Read")
 			assert.NotNil(t, format, "returned Format")
 			assert.Equal(t, "UTF-8", format.Encoding, "UTF-8 encoding expected")
 			assert.Equalf(t, refSeparator, format.Separator, "'s' separator expected", refSeparator)
-			EmptyRowsWithNonUniformColumns(rows)
+			SetRowsWithNonUniformColumnsNil(rows)
 			rows = RemoveEmptyRows(rows)
 			assert.Len(t, rows, 1, "one CSV row expected")
 			rowFields := rows[0]
@@ -153,4 +154,35 @@ func TestParseStrings(t *testing.T) {
 			}
 		})
 	}
+
+}
+
+func TestParsePriavteStrings(t *testing.T) {
+	privateTestDataDir := fs.File("../../TestDocuments/CSV")
+	assert.True(t, privateTestDataDir.IsDir(), "privateTestDataDir exists")
+
+	type Expected struct {
+		Format *Format
+		Rows   [][]string
+	}
+
+	testCSV := func(csvFile fs.File) error {
+		jsonFile := csvFile.TrimExt() + ".json"
+		assert.True(t, jsonFile.Exists())
+
+		var expected Expected
+		err := jsonFile.ReadJSON(&expected)
+		assert.NoError(t, err, "ReadJSON")
+
+		rows, format, err := FileParseStringsDetectFormat(csvFile, NewFormatDetectionConfig())
+		assert.NoError(t, err, "FileParseStringsDetectFormat")
+		rows = RemoveEmptyRows(rows)
+
+		assert.Equal(t, expected.Format, format, "detected format")
+		assert.Equalf(t, expected.Rows, rows, "rows from %s equal to %s", jsonFile, csvFile)
+
+		return nil
+	}
+
+	privateTestDataDir.ListDir(testCSV, "*.csv")
 }

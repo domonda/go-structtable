@@ -11,15 +11,15 @@ type TextReader struct {
 	rows           [][]string
 	columnMapping  map[int]string
 	columnTitleTag string
-	config         *assign.StringConfig
+	parser         *assign.StringParser
 }
 
-func NewTextReader(rows [][]string, columnMapping map[int]string, columnTitleTag string, config *assign.StringConfig) *TextReader {
+func NewTextReader(rows [][]string, columnMapping map[int]string, columnTitleTag string, parser *assign.StringParser) *TextReader {
 	return &TextReader{
 		rows:           rows,
 		columnMapping:  columnMapping,
 		columnTitleTag: columnTitleTag,
-		config:         config,
+		parser:         parser,
 	}
 }
 
@@ -55,7 +55,7 @@ func (tr *TextReader) ReadRow(index int, destStruct reflect.Value) error {
 			return wraperr.Errorf("no struct field %q found in %s using tag %q", name, destStruct.Type(), tr.columnTitleTag)
 		}
 
-		err := assign.String(row[col], tr.config, destVal)
+		err := assign.String(destVal, row[col], tr.parser)
 		if err != nil {
 			return wraperr.Errorf("error reading row %d, column %d: %w", index, col, err)
 		}

@@ -3,29 +3,42 @@ package csv
 import (
 	"bytes"
 
+	"github.com/ungerik/go-fs"
+
 	"github.com/domonda/go-types/charset"
 	"github.com/domonda/go-wraperr"
 )
 
+// FileParseStringsDetectFormat returns a slice of strings per row with the format detected via the FormatDetectionConfig.
+func FileParseStringsDetectFormat(csvFile fs.File, config *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
+	defer wraperr.WithFuncParams(&err, csvFile, config)
+
+	data, err := csvFile.ReadAll()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return ParseStringsDetectFormat(data, config)
+}
+
 // ParseStringsDetectFormat returns a slice of strings per row with the format detected via the FormatDetectionConfig.
-// newlineReplacement will be used to replace newline characters in multiline CSV fields.
-func ParseStringsDetectFormat(data []byte, config *FormatDetectionConfig, newlineReplacement string) (rows [][]string, format *Format, err error) {
-	defer wraperr.WithFuncParams(&err, len(data), config, newlineReplacement)
+func ParseStringsDetectFormat(data []byte, config *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
+	defer wraperr.WithFuncParams(&err, data, config)
 
 	format, lines, err := detectFormat(data, config)
 	if err != nil {
 		return nil, format, err
 	}
 
-	rows, err = readLines(lines, []byte(format.Separator), newlineReplacement)
+	rows, err = readLines(lines, []byte(format.Separator), "\n")
 	return rows, format, err
 }
 
-func ParseStringsWithFormat(data []byte, format *Format, newlineReplacement string) (rows [][]string, err error) {
-	defer wraperr.WithFuncParams(&err, len(data), format, newlineReplacement)
+func ParseStringsWithFormat(data []byte, format *Format) (rows [][]string, err error) {
+	defer wraperr.WithFuncParams(&err, data, format)
 
 	lines := bytes.Split(data, []byte(format.Newline))
-	return readLines(lines, []byte(format.Separator), newlineReplacement)
+	return readLines(lines, []byte(format.Separator), "\n")
 }
 
 func detectFormat(data []byte, config *FormatDetectionConfig) (format *Format, lines [][]byte, err error) {
@@ -125,7 +138,7 @@ func detectFormat(data []byte, config *FormatDetectionConfig) (format *Format, l
 }
 
 func readLines(lines [][]byte, separator []byte, newlineReplacement string) (rows [][]string, err error) {
-	defer wraperr.WithFuncParams(&err, len(lines), separator, newlineReplacement)
+	defer wraperr.WithFuncParams(&err, lines, separator, newlineReplacement)
 
 	rows = make([][]string, len(lines))
 	for lineIndex := range lines {
