@@ -153,8 +153,10 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 				continue
 			}
 
-			left := field[0]
-			right := field[len(field)-1]
+			var (
+				left  = field[0]
+				right = field[len(field)-1]
+			)
 			switch {
 			case left == '"' && right == '"':
 				// Quoted field
@@ -165,8 +167,9 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 
 			case left == '"' && right != '"':
 				// Field begins with quote but does not end with one
-				if field[1] == '"' {
-					// Begins with escaped quote "".
+				if field[1] == '"' && (len(field) <= 2 || field[2] != '"') {
+					// Begins with two quotes wich is an escaped quote,
+					// but not with a tripple quote.
 					// No special handling needed, will be unescaped futher down
 				} else {
 
@@ -219,6 +222,7 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 						}
 
 					} else {
+
 						// Begins with quote but does not end with one
 						// means that a separator was in a quoted field
 						// that has been wrongly splitted into multiple fields.
@@ -230,8 +234,10 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 							if len(fj) < 2 {
 								continue
 							}
-							leftOK := fj[0] != '"' || (fj[0] == '"' && fj[1] == '"')
-							rightOK := fj[len(fj)-2] != '"' && fj[len(fj)-1] == '"'
+							var (
+								leftOK  = fj[0] != '"' || (fj[0] == '"' && fj[1] == '"')
+								rightOK = (fj[len(fj)-2] != '"' && fj[len(fj)-1] == '"') // || bytes.HasSuffix(fj, []byte(`"""`))
+							)
 							if leftOK && rightOK {
 								// Join fields [i..j]
 								field = bytes.Join(fields[i:j+1], separator)
