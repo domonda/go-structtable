@@ -25,7 +25,7 @@ func FileParseStringsDetectFormat(csvFile fs.File, config *FormatDetectionConfig
 func ParseStringsDetectFormat(data []byte, config *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
 	defer wraperr.WithFuncParams(&err, data, config)
 
-	format, lines, err := detectFormat(data, config)
+	format, lines, err := detectFormatAndSplitLines(data, config)
 	if err != nil {
 		return nil, format, err
 	}
@@ -41,8 +41,13 @@ func ParseStringsWithFormat(data []byte, format *Format) (rows [][]string, err e
 	return readLines(lines, []byte(format.Separator), "\n")
 }
 
-func detectFormat(data []byte, config *FormatDetectionConfig) (format *Format, lines [][]byte, err error) {
-	defer wraperr.WithFuncParams(&err, len(data), config)
+func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (format *Format, lines [][]byte, err error) {
+	defer wraperr.WithFuncParams(&err, data, config)
+
+	format = new(Format)
+
+	///////////////////////////////////////////////////////////////////////////
+	// Detect charset encoding
 
 	var encodings []charset.Encoding
 	for _, name := range config.Encodings {
@@ -53,19 +58,39 @@ func detectFormat(data []byte, config *FormatDetectionConfig) (format *Format, l
 		encodings = append(encodings, enc)
 	}
 
-	data, encoding, err := charset.AutoDecode(data, encodings, config.EncodingTests)
+	data, format.Encoding, err = charset.AutoDecode(data, encodings, config.EncodingTests)
 	if err != nil {
 		return nil, nil, err
 	}
-	if encoding == "" {
-		encoding = "UTF-8"
+	if format.Encoding == "" {
+		format.Encoding = "UTF-8"
 	}
 
-	format = &Format{
-		Encoding: encoding,
+	///////////////////////////////////////////////////////////////////////////
+	// Detect line endings
+
+	var (
+		numLinesR  = bytes.Count(data, []byte{'\r'})
+		numLinesN  = bytes.Count(data, []byte{'\n'})
+		numLinesRN = bytes.Count(data, []byte{'\r', '\n'})
+		// numDoubleDoubleQuotes = bytes.Count(data, []byte{'"', '"'})
+	)
+
+	// fmt.Println("n:", numLinesN, "rn:", numLinesRN, "r:", numLinesR)
+
+	switch {
+	case numLinesR > numLinesN:
+		format.Newline = "\r"
+	case numLinesN > numLinesRN:
+		format.Newline = "\n"
+	default:
+		format.Newline = "\r\n"
 	}
 
-	// data = strutil.SanitizeLineEndingsBytes(data)
+	///////////////////////////////////////////////////////////////////////////
+	// Detect separator
+
+	lines = bytes.Split(data, []byte(format.Newline))
 
 	type sepCounts struct {
 		commas     int
@@ -77,25 +102,10 @@ func detectFormat(data []byte, config *FormatDetectionConfig) (format *Format, l
 		sep sepCounts
 		// lineSepCounts  []sepCounts
 		numNonEmptyLines int
-
-		numLinesR  = bytes.Count(data, []byte{'\r'})
-		numLinesN  = bytes.Count(data, []byte{'\n'})
-		numLinesRN = bytes.Count(data, []byte{'\r', '\n'})
 	)
 
-	// fmt.Println("n:", numLinesN, "rn:", numLinesRN, "r:", numLinesR)
-
-	if numLinesR > numLinesN {
-		format.Newline = "\r"
-	} else if numLinesN > numLinesRN {
-		format.Newline = "\n"
-	} else {
-		format.Newline = "\r\n"
-	}
-
-	lines = bytes.Split(data, []byte(format.Newline))
-
 	for i := range lines {
+		// Remove double newlines
 		lines[i] = bytes.Trim(lines[i], "\r\n")
 		line := lines[i]
 
@@ -141,12 +151,12 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 	defer wraperr.WithFuncParams(&err, lines, separator, newlineReplacement)
 
 	rows = make([][]string, len(lines))
-	for lineIndex := range lines {
-		if len(lines[lineIndex]) == 0 {
+	for lineIndex, line := range lines {
+		if len(line) == 0 {
 			continue
 		}
 
-		fields := bytes.Split(lines[lineIndex], separator)
+		fields := bytes.Split(line, separator)
 		for i := 0; i < len(fields); i++ {
 			field := fields[i]
 			if len(field) < 2 {
@@ -183,8 +193,8 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 						for joinLineIndex = lineIndex + 1; joinLineIndex < len(lines); joinLineIndex++ {
 							joinLine := lines[joinLineIndex]
 							joinLineFields := bytes.Split(joinLine, separator)
-							if len(joinLineFields) > 0 && joinLineFields[0][len(joinLineFields[0])-1] == '"' {
-								// Found the line where the first field holds the closing quote for the multi line field
+							if len(joinLineFields) > 0 && len(joinLineFields[0]) > 0 && joinLineFields[0][len(joinLineFields[0])-1] == '"' {
+								// Found the line where the first field holds the closing quote for the multi-line field
 								break
 							}
 						}
@@ -253,8 +263,11 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 				}
 
 			default:
-				return nil, wraperr.Errorf("can't handle CSV field %q in line %q", field, lines[lineIndex])
+				return nil, wraperr.Errorf("can't handle CSV field `%s` in line `%s`", field, line)
+				// Examples for this error:
 				// /var/domonda-data/documents/39/d20/301/65394733/b7e967e7f98ec1e8/2019-01-03_09-46-50.435/doc.csv
+				// Double embedded fields:
+				// /var/domonda-data/documents/c9/727/af8/9cdf4afd/981ad4331d0fb6ca/2019-11-04_08-18-13.602/doc.csv
 			}
 
 			fields[i] = bytes.ReplaceAll(field, []byte(`""`), []byte{'"'})
@@ -268,4 +281,34 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 	}
 
 	return rows, nil
+}
+
+func countQuotesLeft(str []byte) int {
+	for i, c := range str {
+		if c != '"' {
+			return i
+		}
+	}
+	return len(str)
+}
+
+func countQuotesRight(str []byte) int {
+	for i := len(str) - 1; i >= 0; i-- {
+		if str[i] != '"' {
+			return len(str) - 1 - i
+		}
+	}
+	return len(str)
+}
+
+func countQuotesLeftRight(str []byte) (left, right int) {
+	left = countQuotesLeft(str)
+	right = countQuotesRight(str)
+
+	if left == len(str) {
+		left = (len(str) + 1) / 2
+		right = len(str) - left
+	}
+
+	return left, right
 }

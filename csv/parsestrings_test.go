@@ -239,3 +239,48 @@ func TestParsePriavteStrings(t *testing.T) {
 
 	privateTestDataDir.ListDir(testCSV, "*.csv")
 }
+
+func TestCountQuotes(t *testing.T) {
+	testData := map[string][2]int{
+		``:     {0, 0},
+		`"`:    {1, 0},
+		`""`:   {1, 1},
+		`"""`:  {2, 1},
+		`""""`: {2, 2},
+
+		`1`:      {0, 0},
+		`12`:     {0, 0},
+		`123`:    {0, 0},
+		` " `:    {0, 0},
+		` "" `:   {0, 0},
+		`  ""  `: {0, 0},
+
+		`" `:    {1, 0},
+		`"" `:   {2, 0},
+		`""" `:  {3, 0},
+		`"""" `: {4, 0},
+
+		` "`:    {0, 1},
+		` ""`:   {0, 2},
+		` """`:  {0, 3},
+		` """"`: {0, 4},
+
+		`" "`:   {1, 1},
+		`"" "`:  {2, 1},
+		`""" "`: {3, 1},
+		`" ""`:  {1, 2},
+		`" """`: {1, 3},
+
+		`"  "`:     {1, 1},
+		`""  ""`:   {2, 2},
+		`"""  """`: {3, 3},
+	}
+
+	for str, counts := range testData {
+		t.Run(str, func(t *testing.T) {
+			left, right := countQuotesLeftRight([]byte(str))
+			assert.Equal(t, counts[0], left, "left quote count")
+			assert.Equal(t, counts[1], right, "right quote count")
+		})
+	}
+}
