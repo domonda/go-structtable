@@ -163,24 +163,28 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 				continue
 			}
 
-			var (
-				left  = field[0]
-				right = field[len(field)-1]
-			)
+			leftQuotes, rightQuotes := countQuotesLeftRight(field)
 			switch {
-			case left == '"' && right == '"':
-				// Quoted field
-				field = field[1 : len(field)-1]
-
-			case left != '"' && right != '"':
+			case leftQuotes == 0 && rightQuotes == 0:
 				// Unquoted field
 
-			case left == '"' && right != '"':
+			case leftQuotes == 1 && rightQuotes == 1, // Quoted field
+				leftQuotes == 3 && rightQuotes == 1, // Quoted field beginning with escapted quote
+				leftQuotes == 1 && rightQuotes == 3, // Quoted field ending with escapted quote
+				leftQuotes == 3 && rightQuotes == 3, // Quoted field with escaped quotes inside
+				leftQuotes == 2 && rightQuotes == 2: // Field not quoted, but escaped quotes inside
+
+				// Remove outermost quotes
+				field = field[1 : len(field)-1]
+
+			case leftQuotes >= 1 && rightQuotes == 0:
 				// Field begins with quote but does not end with one
-				if field[1] == '"' && (len(field) <= 2 || field[2] != '"') {
+
+				if leftQuotes == 2 {
 					// Begins with two quotes wich is an escaped quote,
 					// but not with a tripple quote.
 					// No special handling needed, will be unescaped futher down
+
 				} else {
 
 					joinLineIndex := -1
@@ -193,7 +197,7 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 						for joinLineIndex = lineIndex + 1; joinLineIndex < len(lines); joinLineIndex++ {
 							joinLine := lines[joinLineIndex]
 							joinLineFields := bytes.Split(joinLine, separator)
-							if len(joinLineFields) > 0 && len(joinLineFields[0]) > 0 && joinLineFields[0][len(joinLineFields[0])-1] == '"' {
+							if len(joinLineFields) > 0 && bytes.HasSuffix(joinLineFields[0], []byte{'"'}) {
 								// Found the line where the first field holds the closing quote for the multi-line field
 								break
 							}
@@ -237,25 +241,26 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 						// means that a separator was in a quoted field
 						// that has been wrongly splitted into multiple fields.
 						// Needs merging of fields:
-						for j := i + 1; j < len(fields); j++ {
+						for r := i + 1; r < len(fields); r++ {
 							// Find following field that does not begin
 							// with a quote, but ends with exactly one
-							fj := fields[j]
-							if len(fj) < 2 {
+							rField := fields[r]
+							if len(rField) < 2 {
 								continue
 							}
+							rLeftQuotes, rRightQuotes := countQuotesLeftRight(rField)
 							var (
-								leftOK  = fj[0] != '"' || (fj[0] == '"' && fj[1] == '"')
-								rightOK = (fj[len(fj)-2] != '"' && fj[len(fj)-1] == '"') // || bytes.HasSuffix(fj, []byte(`"""`))
+								rLeftOK  = rLeftQuotes == 0 || rLeftQuotes == 2 // right field may only begin with an escaped quote
+								rRightOK = (leftQuotes == 1 && rRightQuotes == 1) || (leftQuotes == 1 && rRightQuotes == 3) || (leftQuotes == 3 && rRightQuotes == 1) || (leftQuotes == 3 && rRightQuotes == 3)
 							)
-							if leftOK && rightOK {
+							if rLeftOK && rRightOK {
 								// Join fields [i..j]
-								field = bytes.Join(fields[i:j+1], separator)
+								field = bytes.Join(fields[i:r+1], separator)
 								// Remove quotes
 								field = field[1 : len(field)-1]
 								// Shift remaining slice fields over the ones joined into fields[i]
-								copy(fields[i+1:], fields[j+1:])
-								fields = fields[:len(fields)-(j-i)]
+								copy(fields[i+1:], fields[r+1:])
+								fields = fields[:len(fields)-(r-i)]
 								break
 							}
 						}

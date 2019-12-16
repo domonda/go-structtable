@@ -79,14 +79,17 @@ var testRows = map[string][]string{
 		`E350`,
 		`Super, luxurious truck`,
 	},
-	// TODO failing:
-	// `"1997","Ford,"E350","""Super, luxurious truck"""`: {
-	// 	",",
-	// 	`1997`,
-	// 	`Ford`,
-	// 	`E350`,
-	// 	`"Super, luxurious truck"`,
-	// },
+	`"1997","Ford","E350","""Super, luxurious truck"""`: {
+		",",
+		`1997`,
+		`Ford`,
+		`E350`,
+		`"Super, luxurious truck"`,
+	},
+
+	// "INTERPHONE ""LE 4"""
+	// """Heimbau"" Gemeinnützige Bau-, Wohnungs- u. Siedlungsgenossenscha"
+
 	`05.10.2018;""Heimbau"" Gemeinnützige Bau-, Wohnungs- u. Siedlungsgenossenscha;AT4112xxxxx;BKAUATWWXXX;;;-85,91;EUR;ENTGELT 10/2018 ""Heimbau"" Gemeinnützige Bau-, Wohnu;12000;;0;05.10.2018`: {
 		";", // separator
 		`05.10.2018`,
