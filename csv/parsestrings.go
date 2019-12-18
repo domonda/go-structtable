@@ -73,7 +73,6 @@ func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (form
 		numLinesR  = bytes.Count(data, []byte{'\r'})
 		numLinesN  = bytes.Count(data, []byte{'\n'})
 		numLinesRN = bytes.Count(data, []byte{'\r', '\n'})
-		// numDoubleDoubleQuotes = bytes.Count(data, []byte{'"', '"'})
 	)
 
 	// fmt.Println("n:", numLinesN, "rn:", numLinesRN, "r:", numLinesR)
@@ -101,7 +100,9 @@ func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (form
 	var (
 		sep sepCounts
 		// lineSepCounts  []sepCounts
+		// numSeperators    int
 		numNonEmptyLines int
+		// unusedSeparators string
 	)
 
 	for i := range lines {
@@ -135,14 +136,72 @@ func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (form
 
 	switch {
 	case sep.commas > sep.semicolons && sep.commas > sep.tabs:
+		// numSeperators = sep.commas
+		// unusedSeparators = ";\t"
 		format.Separator = ","
+
 	case sep.semicolons > sep.commas && sep.semicolons > sep.tabs:
+		// numSeperators = sep.semicolons
+		// unusedSeparators = ",\t"
 		format.Separator = ";"
+
 	case sep.tabs > sep.commas && sep.tabs > sep.semicolons:
+		// numSeperators = sep.tabs
+		// unusedSeparators = ",;"
 		format.Separator = "\t"
+
 	default:
+		// numSeperators = sep.commas
+		// unusedSeparators = ";\t"
 		format.Separator = ","
 	}
+
+	///////////////////////////////////////////////////////////////////////////
+	// Detect line embedded as single field
+
+	// var (
+	// 	escapedQuotedSeparators    = []byte{'"', '"', format.Separator[0], '"', '"'}
+	// 	numEscapedQuotedSeparators = 0
+	// 	lineAsField                = true
+	// )
+	// for i, line := range lines {
+	// 	if len(line) == 0 {
+	// 		continue
+	// 	}
+	// 	line = bytes.Trim(line, unusedSeparators)
+	// 	left, right := countQuotesLeftRight(line)
+	// 	if left == 1 && right == 1 {
+	// 		line = line[1 : len(line)-1]
+	// 		num := bytes.Count(line, escapedQuotedSeparators)
+	// 		if num == 0 {
+	// 			lineAsField = false
+	// 			break
+	// 		}
+	// 		if i == 0 {
+	// 			numEscapedQuotedSeparators = num
+	// 		} else {
+	// 			if num != numEscapedQuotedSeparators {
+	// 				lineAsField = false
+	// 				break
+	// 			}
+	// 		}
+	// 	} else {
+	// 		lineAsField = false
+	// 		break
+	// 	}
+	// }
+	// lineAsField = false // TODO remove and test
+	// if lineAsField {
+	// 	for i, line := range lines {
+	// 		if len(line) == 0 {
+	// 			continue
+	// 		}
+	// 		line = bytes.Trim(line, unusedSeparators)
+	// 		line = line[1 : len(line)-1]
+	// 		line = bytes.ReplaceAll(line, []byte{'"', '"'}, []byte{'"'})
+	// 		lines[i] = line
+	// 	}
+	// }
 
 	return format, lines, nil
 }
