@@ -14,13 +14,17 @@ type TextReader struct {
 	parser         *assign.StringParser
 }
 
-func NewTextReader(rows [][]string, columnMapping map[int]string, columnTitleTag string, parser *assign.StringParser) *TextReader {
-	return &TextReader{
+func NewTextReader(rows [][]string, columnMapping map[int]string, columnTitleTag string, stringParser ...*assign.StringParser) *TextReader {
+	tr := &TextReader{
 		rows:           rows,
 		columnMapping:  columnMapping,
 		columnTitleTag: columnTitleTag,
-		parser:         parser,
+		parser:         assign.DefaultStringParser,
 	}
+	if len(stringParser) > 0 && stringParser[0] != nil {
+		tr.parser = stringParser[0]
+	}
+	return tr
 }
 
 func (tr *TextReader) NumRows() int {

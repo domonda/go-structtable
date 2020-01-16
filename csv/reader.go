@@ -35,7 +35,7 @@ type Reader struct {
 }
 
 // NewReader reads from an io.Reader
-func NewReader(reader io.Reader, format *Format, newlineReplacement string, modifiers ModifierList, columns []ColumnMapping) (r *Reader, err error) {
+func NewReader(reader io.Reader, format *Format, newlineReplacement string, modifiers ModifierList, columns []ColumnMapping, stringParser ...*assign.StringParser) (r *Reader, err error) {
 	defer wraperr.WithFuncParams(&err, reader)
 
 	data, err := ioutil.ReadAll(reader)
@@ -50,13 +50,17 @@ func NewReader(reader io.Reader, format *Format, newlineReplacement string, modi
 		return nil, err
 	}
 
-	return &Reader{
+	r = &Reader{
 		Format:       format,
-		StringParser: assign.NewStringParser(),
+		StringParser: assign.DefaultStringParser,
 		Modifiers:    modifiers,
 		Columns:      columns,
 		rows:         rows,
-	}, nil
+	}
+	if len(stringParser) > 0 && stringParser[0] != nil {
+		r.StringParser = stringParser[0]
+	}
+	return r, nil
 }
 
 // // NewReaderFromFile reads from a fs.FileReader
