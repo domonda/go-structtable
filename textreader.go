@@ -3,7 +3,7 @@ package structtable
 import (
 	"reflect"
 
-	"github.com/domonda/go-types/assign"
+	"github.com/domonda/go-types/strfmt"
 	"github.com/domonda/go-wraperr"
 )
 
@@ -11,18 +11,18 @@ type TextReader struct {
 	rows           [][]string
 	columnMapping  map[int]string
 	columnTitleTag string
-	parser         *assign.StringParser
+	scanConfig     *strfmt.ScanConfig
 }
 
-func NewTextReader(rows [][]string, columnMapping map[int]string, columnTitleTag string, stringParser ...*assign.StringParser) *TextReader {
+func NewTextReader(rows [][]string, columnMapping map[int]string, columnTitleTag string, scanConfig ...*strfmt.ScanConfig) *TextReader {
 	tr := &TextReader{
 		rows:           rows,
 		columnMapping:  columnMapping,
 		columnTitleTag: columnTitleTag,
-		parser:         assign.DefaultStringParser,
+		scanConfig:     strfmt.DefaultScanConfig,
 	}
-	if len(stringParser) > 0 && stringParser[0] != nil {
-		tr.parser = stringParser[0]
+	if len(scanConfig) > 0 && scanConfig[0] != nil {
+		tr.scanConfig = scanConfig[0]
 	}
 	return tr
 }
@@ -59,7 +59,7 @@ func (tr *TextReader) ReadRow(index int, destStruct reflect.Value) error {
 			return wraperr.Errorf("no struct field %q found in %s using tag %q", name, destStruct.Type(), tr.columnTitleTag)
 		}
 
-		err := assign.String(destVal, row[col], tr.parser)
+		err := strfmt.Scan(destVal, row[col], tr.parser)
 		if err != nil {
 			return wraperr.Errorf("error reading row %d, column %d: %w", index, col, err)
 		}

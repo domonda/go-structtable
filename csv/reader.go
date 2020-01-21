@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"reflect"
 
-	"github.com/domonda/go-types/assign"
+	"github.com/domonda/go-types/strfmt"
 	"github.com/domonda/go-wraperr"
 )
 
@@ -27,7 +27,7 @@ type ColumnMapping struct {
 type Reader struct {
 	Format          *Format                `json:"format,omitempty"`
 	FormatDetection *FormatDetectionConfig `json:"formatDetection,omitempty"`
-	StringParser    *assign.StringParser   `json:"stringParser"`
+	StringParser    *strfmt.Parser         `json:"stringParser"`
 	Modifiers       ModifierList           `json:"modifiers"`
 	Columns         []ColumnMapping        `json:"columns"`
 
@@ -35,7 +35,7 @@ type Reader struct {
 }
 
 // NewReader reads from an io.Reader
-func NewReader(reader io.Reader, format *Format, newlineReplacement string, modifiers ModifierList, columns []ColumnMapping, stringParser ...*assign.StringParser) (r *Reader, err error) {
+func NewReader(reader io.Reader, format *Format, newlineReplacement string, modifiers ModifierList, columns []ColumnMapping, stringParser ...*strfmt.Parser) (r *Reader, err error) {
 	defer wraperr.WithFuncParams(&err, reader)
 
 	data, err := ioutil.ReadAll(reader)
@@ -52,7 +52,7 @@ func NewReader(reader io.Reader, format *Format, newlineReplacement string, modi
 
 	r = &Reader{
 		Format:       format,
-		StringParser: assign.DefaultStringParser,
+		StringParser: strfmt.DefaultStringParser,
 		Modifiers:    modifiers,
 		Columns:      columns,
 		rows:         rows,
@@ -101,7 +101,7 @@ func (r *Reader) ReadRow(index int, destStruct reflect.Value) error {
 		if !destStructField.IsValid() {
 			continue
 		}
-		err := assign.String(destStructField, row[col.Index], r.StringParser)
+		err := strfmt.Scan(destStructField, row[col.Index], r.StringParser)
 		if err != nil {
 			return wraperr.Errorf("error parsing row %d, column %d string %q: %w", index, col.Index, row[col.Index], err)
 		}

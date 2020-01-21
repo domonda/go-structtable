@@ -3,7 +3,7 @@ module github.com/domonda/go-structtable
 go 1.13
 
 require (
-	github.com/domonda/go-types v0.0.0-20200116145920-12d15857a010
+	github.com/domonda/go-types v0.0.0-20200121132513-c2999863ddd3
 	github.com/domonda/go-wraperr v0.0.0-20191218095026-c132bf32bd96
 	github.com/guregu/null v3.4.0+incompatible // indirect
 	github.com/jinzhu/now v1.1.1 // indirect
