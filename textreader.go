@@ -59,7 +59,7 @@ func (tr *TextReader) ReadRow(index int, destStruct reflect.Value) error {
 			return wraperr.Errorf("no struct field %q found in %s using tag %q", name, destStruct.Type(), tr.columnTitleTag)
 		}
 
-		err := strfmt.Scan(destVal, row[col], tr.parser)
+		err := strfmt.Scan(destVal, row[col], tr.scanConfig)
 		if err != nil {
 			return wraperr.Errorf("error reading row %d, column %d: %w", index, col, err)
 		}
