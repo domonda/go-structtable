@@ -11,7 +11,6 @@ import (
 	fs "github.com/ungerik/go-fs"
 	reflection "github.com/ungerik/go-reflection"
 
-	"github.com/domonda/errors"
 	"github.com/domonda/go-types/date"
 	"github.com/domonda/go-types/money"
 )
@@ -96,7 +95,7 @@ func (excel *Writer) SetCurrentSheet(name string) error {
 			return nil
 		}
 	}
-	return errors.Errorf("sheet with name '%s' not found", name)
+	return fmt.Errorf("sheet with name '%s' not found", name)
 }
 
 func (excel *Writer) WriteHeaderRow(columnTitles []string) error {
