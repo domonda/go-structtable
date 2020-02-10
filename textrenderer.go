@@ -16,96 +16,96 @@ import (
 	"github.com/domonda/go-types/strfmt"
 )
 
-// TextWriterImpl has to be implemented for a format
-// to be used by TextWriter.
-type TextWriterImpl interface {
-	WriteBeginTableText(writer io.Writer) error
-	WriteHeaderRowText(writer io.Writer, columnTitles []string) error
-	WriteRowText(writer io.Writer, fields []string) error
-	WriteEndTableText(writer io.Writer) error
+// TextFormatRenderer has to be formatemented for a format
+// to be used by TextRenderer.
+type TextFormatRenderer interface {
+	RenderBeginTableText(writer io.Writer) error
+	RenderHeaderRowText(writer io.Writer, columnTitles []string) error
+	RenderRowText(writer io.Writer, fields []string) error
+	RenderEndTableText(writer io.Writer) error
 }
 
-// TextWriter implements the Writer by using a TextWriterImpl
+// TextRenderer implements Renderer by using a TextFormatRenderer
 // for a specific text based table format.
-type TextWriter struct {
-	impl           TextWriterImpl
+type TextRenderer struct {
+	format         TextFormatRenderer
 	config         *TextFormatConfig
 	typeFormatters map[reflect.Type]TextFormatter
 	buf            bytes.Buffer
 	beginWritten   bool
 }
 
-func NewTextWriter(impl TextWriterImpl, config *TextFormatConfig) *TextWriter {
-	tw := &TextWriter{
-		impl:   impl,
+func NewTextRenderer(format TextFormatRenderer, config *TextFormatConfig) *TextRenderer {
+	tw := &TextRenderer{
+		format: format,
 		config: config,
 	}
 	return tw
 }
 
-// func (tw *TextWriter) SetTypeTextFormatter(columnType reflect.Type, formatter TextFormatter) {
+// func (txt *TextRenderer) SetTypeTextFormatter(columnType reflect.Type, formatter TextFormatter) {
 // 	if formatter != nil {
-// 		tw.typeFormatters[columnType] = formatter
+// 		txt.typeFormatters[columnType] = formatter
 // 	} else {
-// 		delete(tw.typeFormatters, columnType)
+// 		delete(txt.typeFormatters, columnType)
 // 	}
 // }
 
-func (tw *TextWriter) writeBeginIfMissing() error {
-	if tw.beginWritten {
+func (txt *TextRenderer) writeBeginIfMissing() error {
+	if txt.beginWritten {
 		return nil
 	}
-	err := tw.impl.WriteBeginTableText(&tw.buf)
+	err := txt.format.RenderBeginTableText(&txt.buf)
 	if err != nil {
 		return err
 	}
-	tw.beginWritten = true
+	txt.beginWritten = true
 	return nil
 }
 
-func (tw *TextWriter) WriteHeaderRow(columnTitles []string) error {
-	err := tw.writeBeginIfMissing()
+func (txt *TextRenderer) RenderHeaderRow(columnTitles []string) error {
+	err := txt.writeBeginIfMissing()
 	if err != nil {
 		return err
 	}
-	return tw.impl.WriteHeaderRowText(&tw.buf, columnTitles)
+	return txt.format.RenderHeaderRowText(&txt.buf, columnTitles)
 }
 
-func (tw *TextWriter) WriteRow(columnValues []reflect.Value) error {
-	err := tw.writeBeginIfMissing()
+func (txt *TextRenderer) RenderRow(columnValues []reflect.Value) error {
+	err := txt.writeBeginIfMissing()
 	if err != nil {
 		return err
 	}
 	fields := make([]string, len(columnValues))
 	for i, val := range columnValues {
-		fields[i] = tw.toString(val)
+		fields[i] = txt.toString(val)
 	}
-	return tw.impl.WriteRowText(&tw.buf, fields)
+	return txt.format.RenderRowText(&txt.buf, fields)
 }
 
-func (tw *TextWriter) toString(val reflect.Value) string {
+func (txt *TextRenderer) toString(val reflect.Value) string {
 	valType := val.Type()
 	derefVal, derefType := reflection.DerefValueAndType(val)
 
-	if f, ok := tw.config.TypeFormatters[derefType]; ok && derefVal.IsValid() {
+	if f, ok := txt.config.TypeFormatters[derefType]; ok && derefVal.IsValid() {
 		// derefVal.IsValid() returns false for dereferenced nil pointer
 		// so the following will only be called for non nil pointers:
-		return f.FormatValue(derefVal, tw.config)
+		return f.FormatValue(derefVal, txt.config)
 	}
 
 	switch valType.Kind() {
 	case reflect.Ptr, reflect.Interface:
 		if val.IsNil() {
-			return tw.config.Nil
+			return txt.config.Nil
 		}
 	}
 
 	switch derefType.Kind() {
 	case reflect.Bool:
 		if derefVal.Bool() {
-			return tw.config.True
+			return txt.config.True
 		} else {
-			return tw.config.False
+			return txt.config.False
 		}
 
 	case reflect.String:
@@ -114,10 +114,10 @@ func (tw *TextWriter) toString(val reflect.Value) string {
 	case reflect.Float32, reflect.Float64:
 		return strfmt.FormatFloat(
 			derefVal.Float(),
-			tw.config.Float.ThousandsSep,
-			tw.config.Float.DecimalSep,
-			tw.config.Float.Precision,
-			tw.config.Float.PadPrecision,
+			txt.config.Float.ThousandsSep,
+			txt.config.Float.DecimalSep,
+			txt.config.Float.Precision,
+			txt.config.Float.PadPrecision,
 		)
 
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -145,27 +145,27 @@ func (tw *TextWriter) toString(val reflect.Value) string {
 	return fmt.Sprint(val.Interface())
 }
 
-func (tw *TextWriter) Result() ([]byte, error) {
-	err := tw.impl.WriteEndTableText(&tw.buf)
+func (txt *TextRenderer) Result() ([]byte, error) {
+	err := txt.format.RenderEndTableText(&txt.buf)
 	if err != nil {
 		return nil, err
 	}
-	return tw.buf.Bytes(), nil
+	return txt.buf.Bytes(), nil
 }
 
-func (tw *TextWriter) WriteResultTo(writer io.Writer) error {
-	_, err := tw.buf.WriteTo(writer)
+func (txt *TextRenderer) WriteResultTo(writer io.Writer) error {
+	_, err := txt.buf.WriteTo(writer)
 	return err
 }
 
-func (tw *TextWriter) WriteResultFile(file fs.File, perm ...fs.Permissions) error {
+func (txt *TextRenderer) WriteResultFile(file fs.File, perm ...fs.Permissions) error {
 	writer, err := file.OpenWriter(perm...)
 	if err != nil {
 		return err
 	}
 	defer writer.Close()
 
-	return tw.WriteResultTo(writer)
+	return txt.WriteResultTo(writer)
 }
 
 func formatDateString(val reflect.Value, config *TextFormatConfig) string {

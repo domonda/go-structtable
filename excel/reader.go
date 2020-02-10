@@ -4,7 +4,7 @@ import (
 	"archive/zip"
 	"reflect"
 
-	"github.com/tealeg/xlsx"
+	xlsx "github.com/tealeg/xlsx/v2"
 	fs "github.com/ungerik/go-fs"
 
 	"github.com/domonda/go-wraperr"

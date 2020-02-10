@@ -11,12 +11,12 @@ import (
 	"github.com/domonda/go-types/charset"
 )
 
-func Test_WriteCSV(t *testing.T) {
-	writer := NewWriter(structtable.NewTextFormatConfig())
-	err := structtable.WriteReflectColumnTitles(writer, test.NewTable(5), "title")
+func Test_RenderCSV(t *testing.T) {
+	renderer := NewRenderer(structtable.NewTextFormatConfig())
+	err := structtable.RenderReflectColumnTitles(renderer, test.NewTable(5), "title")
 	assert.NoError(t, err, "WriteFile")
 
-	result, err := writer.Result()
+	result, err := renderer.Result()
 	assert.NoError(t, err, "Result")
 
 	// fmt.Print(string(result))

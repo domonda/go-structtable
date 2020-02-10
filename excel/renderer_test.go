@@ -11,19 +11,19 @@ import (
 	"github.com/domonda/go-structtable/test"
 )
 
-func Test_WriteExcel(t *testing.T) {
+func Test_RenderExcel(t *testing.T) {
 	outputFile := fs.TempDir().Joinf("Test_%s.xlsx", time.Now())
 
-	writer, err := NewWriter("Sheet 1")
+	renderer, err := NewRenderer("Sheet 1")
 	assert.NoError(t, err, "Sheet 1")
 
-	err = structtable.WriteReflectColumnTitles(writer, test.NewTable(30), "title")
+	err = structtable.RenderReflectColumnTitles(renderer, test.NewTable(30), "title")
 	assert.NoError(t, err, "WriteFile")
 
-	err = writer.AddSheet("Sheet 2")
+	err = renderer.AddSheet("Sheet 2")
 	assert.NoError(t, err, "Sheet 2")
 
-	writer.WriteResultFile(outputFile)
+	renderer.WriteResultFile(outputFile)
 	assert.True(t, outputFile.Exists(), "WriteFile")
 
 	// t.Log("Written file:", outputFile)

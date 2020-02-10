@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/tealeg/xlsx"
+	xlsx "github.com/tealeg/xlsx/v2"
 	fs "github.com/ungerik/go-fs"
 	reflection "github.com/ungerik/go-reflection"
 
@@ -35,7 +35,7 @@ func (f ExcelCellWriterFunc) WriteCell(cell *xlsx.Cell, val reflect.Value, confi
 	return f(cell, val, config)
 }
 
-type Writer struct {
+type Renderer struct {
 	file            *xlsx.File
 	currentSheet    *xlsx.Sheet
 	headerStyle     *xlsx.Style
@@ -44,14 +44,14 @@ type Writer struct {
 	TypeCellWriters map[reflect.Type]ExcelCellWriter
 }
 
-func NewWriter(sheetName string) (*Writer, error) {
+func NewRenderer(sheetName string) (*Renderer, error) {
 	headerStyle := xlsx.NewStyle()
 	headerStyle.Font.Bold = true
 	headerStyle.Font.Size = 10
 	headerStyle.Font.Name = "Liberation Sans"
 	headerStyle.ApplyFont = true
 
-	excel := &Writer{
+	excel := &Renderer{
 		file:        xlsx.NewFile(),
 		headerStyle: headerStyle,
 		Config: ExcelFormatConfig{
@@ -79,7 +79,7 @@ func NewWriter(sheetName string) (*Writer, error) {
 	return excel, nil
 }
 
-func (excel *Writer) AddSheet(name string) error {
+func (excel *Renderer) AddSheet(name string) error {
 	newSheet, err := excel.file.AddSheet(name)
 	if err != nil {
 		return err
@@ -88,7 +88,7 @@ func (excel *Writer) AddSheet(name string) error {
 	return nil
 }
 
-func (excel *Writer) SetCurrentSheet(name string) error {
+func (excel *Renderer) SetCurrentSheet(name string) error {
 	for _, sheet := range excel.file.Sheets {
 		if sheet.Name == name {
 			excel.currentSheet = sheet
@@ -98,7 +98,7 @@ func (excel *Writer) SetCurrentSheet(name string) error {
 	return fmt.Errorf("sheet with name '%s' not found", name)
 }
 
-func (excel *Writer) WriteHeaderRow(columnTitles []string) error {
+func (excel *Renderer) RenderHeaderRow(columnTitles []string) error {
 	row := excel.currentSheet.AddRow()
 	for _, title := range columnTitles {
 		cell := row.AddCell()
@@ -108,7 +108,7 @@ func (excel *Writer) WriteHeaderRow(columnTitles []string) error {
 	return nil
 }
 
-func (excel *Writer) WriteRow(columnValues []reflect.Value) error {
+func (excel *Renderer) RenderRow(columnValues []reflect.Value) error {
 	row := excel.currentSheet.AddRow()
 	for _, val := range columnValues {
 		cell := row.AddCell()
@@ -189,7 +189,7 @@ func (excel *Writer) WriteRow(columnValues []reflect.Value) error {
 	return nil
 }
 
-func (excel *Writer) Result() ([]byte, error) {
+func (excel *Renderer) Result() ([]byte, error) {
 	buf := bytes.NewBuffer(nil)
 	err := excel.file.Write(buf)
 	if err != nil {
@@ -198,11 +198,11 @@ func (excel *Writer) Result() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (excel *Writer) WriteResultTo(writer io.Writer) error {
+func (excel *Renderer) WriteResultTo(writer io.Writer) error {
 	return excel.file.Write(writer)
 }
 
-func (excel *Writer) WriteResultFile(file fs.File, perm ...fs.Permissions) error {
+func (excel *Renderer) WriteResultFile(file fs.File, perm ...fs.Permissions) error {
 	writer, err := file.OpenWriter(perm...)
 	if err != nil {
 		return err

@@ -15,26 +15,26 @@ var (
 	doubleDoubleQuote = []byte{'"', '"'}
 )
 
-type Writer struct {
-	*structtable.TextWriter
+type Renderer struct {
+	*structtable.TextRenderer
 	headerComment []byte
 	delimiter     []byte
 	quoteFields   bool
 	newLine       []byte
 }
 
-func NewWriter(config *structtable.TextFormatConfig) *Writer {
-	csv := &Writer{
+func NewRenderer(config *structtable.TextFormatConfig) *Renderer {
+	csv := &Renderer{
 		headerComment: nil,
 		delimiter:     []byte{';'},
 		quoteFields:   false,
 		newLine:       []byte{'\r', '\n'},
 	}
-	csv.TextWriter = structtable.NewTextWriter(csv, config)
+	csv.TextRenderer = structtable.NewTextRenderer(csv, config)
 	return csv
 }
 
-func (csv *Writer) SetDelimiter(delimiter string) error {
+func (csv *Renderer) SetDelimiter(delimiter string) error {
 	if delimiter == "" {
 		return errors.New("empty delimiter not possible for CSV")
 	}
@@ -43,7 +43,7 @@ func (csv *Writer) SetDelimiter(delimiter string) error {
 	return nil
 }
 
-func (csv *Writer) SetHeaderComment(headerSuffix string) {
+func (csv *Renderer) SetHeaderComment(headerSuffix string) {
 	if headerSuffix == "" {
 		csv.headerComment = nil
 	} else {
@@ -51,26 +51,26 @@ func (csv *Writer) SetHeaderComment(headerSuffix string) {
 	}
 }
 
-func (csv *Writer) SetQuoteFields(quoteFields bool) {
+func (csv *Renderer) SetQuoteFields(quoteFields bool) {
 	csv.quoteFields = quoteFields
 }
 
-func (*Writer) WriteBeginTableText(writer io.Writer) error {
+func (csv *Renderer) RenderBeginTableText(writer io.Writer) error {
 	_, err := writer.Write([]byte(charset.BOMUTF8))
 	return err
 }
 
-func (csv *Writer) WriteHeaderRowText(writer io.Writer, columnTitles []string) error {
+func (csv *Renderer) RenderHeaderRowText(writer io.Writer, columnTitles []string) error {
 	if len(csv.headerComment) > 0 {
 		_, err := writer.Write(csv.headerComment)
 		if err != nil {
 			return err
 		}
 	}
-	return csv.WriteRowText(writer, columnTitles)
+	return csv.RenderRowText(writer, columnTitles)
 }
 
-func (csv *Writer) WriteRowText(writer io.Writer, fields []string) error {
+func (csv *Renderer) RenderRowText(writer io.Writer, fields []string) error {
 	for i, field := range fields {
 		if i > 0 {
 			_, err := writer.Write(csv.delimiter)
@@ -105,6 +105,6 @@ func (csv *Writer) WriteRowText(writer io.Writer, fields []string) error {
 	return err
 }
 
-func (*Writer) WriteEndTableText(writer io.Writer) error {
+func (csv *Renderer) RenderEndTableText(writer io.Writer) error {
 	return nil
 }
