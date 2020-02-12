@@ -212,6 +212,10 @@ func (excel *Renderer) WriteResultFile(file fs.File, perm ...fs.Permissions) err
 	return excel.file.Write(writer)
 }
 
+func (*Renderer) MIMEType() string {
+	return "vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+}
+
 func writeDateExcelCell(cell *xlsx.Cell, val reflect.Value, config *ExcelFormatConfig) error {
 	if d := val.Interface().(date.Date); !d.IsZero() {
 		cell.SetDateWithOptions(

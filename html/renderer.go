@@ -80,7 +80,11 @@ func (r *Renderer) writeRowText(writer io.Writer, fields []string, fieldTag stri
 	return nil
 }
 
-func (r *Renderer) RenderEndTableText(writer io.Writer) error {
+func (*Renderer) RenderEndTableText(writer io.Writer) error {
 	_, err := writer.Write([]byte("</table>\n"))
 	return err
+}
+
+func (*Renderer) MIMEType() string {
+	return "text/html; charset=UTF-8"
 }

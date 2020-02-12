@@ -17,6 +17,9 @@ type Renderer interface {
 	Result() ([]byte, error)
 	WriteResultTo(w io.Writer) error
 	WriteResultFile(file fs.File, perm ...fs.Permissions) error
+
+	// MIMEType returns the MIME-Type of the rendered content
+	MIMEType() string
 }
 
 func Render(renderer Renderer, structSlice interface{}, columnTitles ...string) error {

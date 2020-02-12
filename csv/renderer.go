@@ -105,6 +105,10 @@ func (csv *Renderer) RenderRowText(writer io.Writer, fields []string) error {
 	return err
 }
 
-func (csv *Renderer) RenderEndTableText(writer io.Writer) error {
+func (*Renderer) RenderEndTableText(writer io.Writer) error {
 	return nil
+}
+
+func (*Renderer) MIMEType() string {
+	return "text/csv; charset=UTF-8"
 }
