@@ -10,7 +10,7 @@ import (
 )
 
 // FileParseStringsDetectFormat returns a slice of strings per row with the format detected via the FormatDetectionConfig.
-func FileParseStringsDetectFormat(csvFile fs.File, config *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
+func FileParseStringsDetectFormat(csvFile fs.FileReader, config *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
 	defer wraperr.WithFuncParams(&err, csvFile, config)
 
 	data, err := csvFile.ReadAll()

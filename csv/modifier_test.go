@@ -17,28 +17,28 @@ func Test_EmptyRowsWithNonUniformColumns(t *testing.T) {
 			expected: nil,
 		},
 		{
-			source:   [][]string{nil, []string{"", "", ""}, nil},
-			expected: [][]string{nil, []string{"", "", ""}, nil}, // nil rows can't dominate
+			source:   [][]string{nil, {"", "", ""}, nil},
+			expected: [][]string{nil, {"", "", ""}, nil}, // nil rows can't dominate
 		},
 		{
-			source:   [][]string{[]string{"1", "2", "3"}, []string{"0"}, []string{"4", "5", "6"}},
-			expected: [][]string{[]string{"1", "2", "3"}, nil, []string{"4", "5", "6"}},
+			source:   [][]string{{"1", "2", "3"}, {"0"}, {"4", "5", "6"}},
+			expected: [][]string{{"1", "2", "3"}, nil, {"4", "5", "6"}},
 		},
 		{
-			source:   [][]string{[]string{"0"}, []string{"1", "2", "3"}, []string{"4", "5", "6"}},
-			expected: [][]string{nil, []string{"1", "2", "3"}, []string{"4", "5", "6"}},
+			source:   [][]string{{"0"}, {"1", "2", "3"}, {"4", "5", "6"}},
+			expected: [][]string{nil, {"1", "2", "3"}, {"4", "5", "6"}},
 		},
 		{
-			source:   [][]string{[]string{"1", "2", "3"}, []string{"0"}, []string{"0", "0"}, []string{"4", "5", "6"}},
-			expected: [][]string{[]string{"1", "2", "3"}, nil, nil, []string{"4", "5", "6"}}, // take longer row if count of columns is identical
+			source:   [][]string{{"1", "2", "3"}, {"0"}, {"0", "0"}, {"4", "5", "6"}},
+			expected: [][]string{{"1", "2", "3"}, nil, nil, {"4", "5", "6"}}, // take longer row if count of columns is identical
 		},
 		{
-			source:   [][]string{[]string{"0", "0"}, []string{"1", "2", "3"}},
-			expected: [][]string{nil, []string{"1", "2", "3"}}, // take longer row if count of columns is identical
+			source:   [][]string{{"0", "0"}, {"1", "2", "3"}},
+			expected: [][]string{nil, {"1", "2", "3"}}, // take longer row if count of columns is identical
 		},
 		{
-			source:   [][]string{[]string{"1"}, []string{"2", "2"}, []string{"3", "3", "3"}},
-			expected: [][]string{nil, nil, []string{"3", "3", "3"}}, // take longer row if count of columns is identical
+			source:   [][]string{{"1"}, {"2", "2"}, {"3", "3", "3"}},
+			expected: [][]string{nil, nil, {"3", "3", "3"}}, // take longer row if count of columns is identical
 		},
 	}
 
@@ -64,28 +64,28 @@ func Test_RemoveEmptyRows(t *testing.T) {
 			expected: nil,
 		},
 		{
-			source:   [][]string{nil, []string{}, nil},
+			source:   [][]string{nil, {}, nil},
 			expected: nil,
 		},
 		{
-			source:   [][]string{nil, []string{"", "", ""}, nil},
+			source:   [][]string{nil, {"", "", ""}, nil},
 			expected: nil,
 		},
 		{
-			source:   [][]string{nil, []string{"1", "2", "3"}, nil},
-			expected: [][]string{[]string{"1", "2", "3"}},
+			source:   [][]string{nil, {"1", "2", "3"}, nil},
+			expected: [][]string{{"1", "2", "3"}},
 		},
 		{
-			source:   [][]string{[]string{"1", "2", "3"}, nil, nil},
-			expected: [][]string{[]string{"1", "2", "3"}},
+			source:   [][]string{{"1", "2", "3"}, nil, nil},
+			expected: [][]string{{"1", "2", "3"}},
 		},
 		{
-			source:   [][]string{nil, nil, []string{"1", "2", "3"}},
-			expected: [][]string{[]string{"1", "2", "3"}},
+			source:   [][]string{nil, nil, {"1", "2", "3"}},
+			expected: [][]string{{"1", "2", "3"}},
 		},
 		{
-			source:   [][]string{[]string{"1", "2", "3"}, nil, []string{"4", "5", "6"}},
-			expected: [][]string{[]string{"1", "2", "3"}, []string{"4", "5", "6"}},
+			source:   [][]string{{"1", "2", "3"}, nil, {"4", "5", "6"}},
+			expected: [][]string{{"1", "2", "3"}, {"4", "5", "6"}},
 		},
 	}
 
