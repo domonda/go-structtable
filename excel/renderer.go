@@ -219,7 +219,7 @@ func (*Renderer) MIMEType() string {
 func writeDateExcelCell(cell *xlsx.Cell, val reflect.Value, config *ExcelFormatConfig) error {
 	if d := val.Interface().(date.Date); !d.IsZero() {
 		cell.SetDateWithOptions(
-			d.MidnightTimeInLocation(config.Location),
+			d.MidnightInLocation(config.Location),
 			xlsx.DateTimeOptions{
 				Location:        config.Location,
 				ExcelTimeFormat: config.Date,
@@ -232,7 +232,7 @@ func writeDateExcelCell(cell *xlsx.Cell, val reflect.Value, config *ExcelFormatC
 func writeNullableDateExcelCell(cell *xlsx.Cell, val reflect.Value, config *ExcelFormatConfig) error {
 	if d := val.Interface().(date.NullableDate); !d.IsZero() {
 		cell.SetDateWithOptions(
-			d.MidnightTimeInLocation(config.Location),
+			d.MidnightInLocation(config.Location).Time,
 			xlsx.DateTimeOptions{
 				Location:        config.Location,
 				ExcelTimeFormat: config.Date,
