@@ -1,4 +1,4 @@
-package html
+package htmltable
 
 import (
 	"fmt"
@@ -16,12 +16,10 @@ var (
 	OddTableRowStyle = "background:#FFF"
 )
 
-// RenderTable is a shortcut to write a HTML table with english text formating and reflected column titles.
-// The optional columnTitleTag strings will be merged into one string,
-// where an empty string means using the struct field names.
-func RenderTable(writer io.Writer, structSlice interface{}, columnTitles bool, columnMapper structtable.ColumnMapper) error {
+// Render is a shortcut to render a HTML table with english text formating
+func Render(writer io.Writer, structSlice interface{}, renderTitleRow bool, columnMapper structtable.ColumnMapper) error {
 	renderer := NewRenderer(structtable.NewEnglishTextFormatConfig())
-	return structtable.RenderTo(writer, renderer, structSlice, columnTitles, columnMapper)
+	return structtable.RenderTo(writer, renderer, structSlice, renderTitleRow, columnMapper)
 }
 
 type Renderer struct {
