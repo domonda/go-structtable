@@ -5,7 +5,6 @@ import (
 	"html"
 	"io"
 	"math/rand"
-	"strings"
 
 	"github.com/domonda/go-structtable"
 )
@@ -20,9 +19,9 @@ var (
 // RenderTable is a shortcut to write a HTML table with english text formating and reflected column titles.
 // The optional columnTitleTag strings will be merged into one string,
 // where an empty string means using the struct field names.
-func RenderTable(writer io.Writer, structSlice interface{}, columnTitleTag ...string) error {
+func RenderTable(writer io.Writer, structSlice interface{}, columnTitles bool, columnMapper structtable.ColumnMapper) error {
 	renderer := NewRenderer(structtable.NewEnglishTextFormatConfig())
-	return structtable.RenderToReflectColumnTitles(writer, renderer, structSlice, strings.Join(columnTitleTag, ""))
+	return structtable.RenderTo(writer, renderer, structSlice, columnTitles, columnMapper)
 }
 
 type Renderer struct {

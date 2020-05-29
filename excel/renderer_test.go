@@ -17,7 +17,7 @@ func Test_RenderExcel(t *testing.T) {
 	renderer, err := NewRenderer("Sheet 1")
 	assert.NoError(t, err, "Sheet 1")
 
-	err = structtable.RenderReflectColumnTitles(renderer, test.NewTable(30), "title")
+	err = structtable.Render(renderer, test.NewTable(30), true, structtable.DefaultReflectColumnTitles)
 	assert.NoError(t, err, "WriteFile")
 
 	err = renderer.AddSheet("Sheet 2")

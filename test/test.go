@@ -12,7 +12,8 @@ import (
 type Struct struct {
 	Bool           bool
 	String         string
-	Bytes          []byte `title:"[]byte string"`
+	Bytes          []byte `col:"[]byte string,IGNORE_AFTER_COMMA"`
+	Ignore         string `col:"-"`
 	Int            int
 	IntPtr         *int
 	Uint16         uint16

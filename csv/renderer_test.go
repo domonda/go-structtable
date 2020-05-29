@@ -13,7 +13,7 @@ import (
 
 func Test_RenderCSV(t *testing.T) {
 	renderer := NewRenderer(structtable.NewTextFormatConfig())
-	err := structtable.RenderReflectColumnTitles(renderer, test.NewTable(5), "title")
+	err := structtable.Render(renderer, test.NewTable(5), true, structtable.DefaultReflectColumnTitles)
 	assert.NoError(t, err, "WriteFile")
 
 	result, err := renderer.Result()
