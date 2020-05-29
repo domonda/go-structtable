@@ -19,6 +19,7 @@ func NewFormatDetectionConfig() *FormatDetectionConfig {
 	return &FormatDetectionConfig{
 		Encodings: []string{
 			"UTF-8",
+			"UTF-16LE",
 			"ISO 8859-1",
 			"Macintosh",
 		},
