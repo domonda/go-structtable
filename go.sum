@@ -32,6 +32,8 @@ github.com/domonda/go-types v0.0.0-20200508185213-5198d775f404 h1:6kVGnQGm2A6hJo
 github.com/domonda/go-types v0.0.0-20200508185213-5198d775f404/go.mod h1:VRymfXNmrRQeaLqfmPq8ktsallEMdb2f2ho38yCHACg=
 github.com/domonda/go-types v0.0.0-20200525182011-aabf8c220d65 h1:HzgXStXyuru5IjKFFhgniJ8Z4kEK5ukCMucYbiw3bT8=
 github.com/domonda/go-types v0.0.0-20200525182011-aabf8c220d65/go.mod h1:VRymfXNmrRQeaLqfmPq8ktsallEMdb2f2ho38yCHACg=
+github.com/domonda/go-types v0.0.0-20200529133936-be610918adcb h1:IjYEx0CnTRofRywmZ7tV480USsIvn1BKnKKZ3krm/Sk=
+github.com/domonda/go-types v0.0.0-20200529133936-be610918adcb/go.mod h1:VRymfXNmrRQeaLqfmPq8ktsallEMdb2f2ho38yCHACg=
 github.com/domonda/go-wraperr v0.0.0-20191218095026-c132bf32bd96 h1:qEeg5dpOQ+A+Rn1iocEjqDSTwVXmy0AuoyGSOG1vMcU=
 github.com/domonda/go-wraperr v0.0.0-20191218095026-c132bf32bd96/go.mod h1:+StTOV14t8kZSKmDG8CfcXEBKTocUqZ9x8zuJHnXgII=
 github.com/domonda/go-wraperr v0.0.0-20200414143540-485fd6d06d5d h1:/ZtNBy3GEmWBVMZX0CvBPn/8S223Z9U6TZzQlgrrGpc=
