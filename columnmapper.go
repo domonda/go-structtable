@@ -49,11 +49,20 @@ func (f ColumnMapperFunc) ColumnTitlesAndRowReflector(structType reflect.Type) (
 
 // ColumnTitles implements ColumnMapper by returning the underlying string slice as column titles
 // and the StructFieldValues function of this package as RowReflector.
-// Warning: it does not check if the number of column titles and the reflected row values are identical.
+// It does not check if the number of column titles and the reflected row values are identical
+// and re-mapping or ignoring of columns is not possible.
 type ColumnTitles []string
 
 func (t ColumnTitles) ColumnTitlesAndRowReflector(structType reflect.Type) (titles []string, rowReflector RowReflector) {
 	return t, RowReflectorFunc(StructFieldValues)
+}
+
+// NoColumnTitles implements ColumnMapper by returning nil as column titles
+// and the StructFieldValues function of this package as RowReflector.
+type NoColumnTitles struct{}
+
+func (NoColumnTitles) ColumnTitlesAndRowReflector(structType reflect.Type) (titles []string, rowReflector RowReflector) {
+	return nil, RowReflectorFunc(StructFieldValues)
 }
 
 // ReflectColumnTitles implements ColumnMapper with a struct field Tag
