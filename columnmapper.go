@@ -2,7 +2,7 @@ package structtable
 
 import (
 	"fmt"
-	"go/ast"
+	"go/token"
 	"reflect"
 	"strings"
 )
@@ -202,7 +202,7 @@ func StructFieldTypes(structType reflect.Type) (fields []reflect.StructField) {
 		switch {
 		case field.Anonymous:
 			fields = append(fields, StructFieldTypes(field.Type)...)
-		case ast.IsExported(field.Name):
+		case token.IsExported(field.Name):
 			fields = append(fields, field)
 		}
 	}
@@ -221,7 +221,7 @@ func StructFieldValues(structValue reflect.Value) (values []reflect.Value) {
 		switch {
 		case field.Anonymous:
 			values = append(values, StructFieldValues(structValue.Field(i))...)
-		case ast.IsExported(field.Name):
+		case token.IsExported(field.Name):
 			values = append(values, structValue.Field(i))
 		}
 	}
