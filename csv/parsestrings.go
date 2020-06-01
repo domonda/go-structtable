@@ -37,6 +37,17 @@ func ParseStringsDetectFormat(data []byte, config *FormatDetectionConfig) (rows 
 func ParseStringsWithFormat(data []byte, format *Format) (rows [][]string, err error) {
 	defer wraperr.WithFuncParams(&err, data, format)
 
+	if format.Encoding != "" && format.Encoding != "UTF-8" {
+		enc, err := charset.GetEncoding(format.Encoding)
+		if err != nil {
+			return nil, err
+		}
+		data, err = enc.Decode(data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	lines := bytes.Split(data, []byte(format.Newline))
 	return readLines(lines, []byte(format.Separator), "\n")
 }

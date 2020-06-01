@@ -8,6 +8,13 @@ import (
 
 type ModifierList []Modifier
 
+func (l ModifierList) Modify(rows [][]string) [][]string {
+	for _, m := range l {
+		rows = m.Modify(rows)
+	}
+	return rows
+}
+
 // MarshalJSON implements encoding/json.Marshaler
 func (l ModifierList) MarshalJSON() ([]byte, error) {
 	names := make([]string, len(l))

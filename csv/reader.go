@@ -7,6 +7,7 @@ import (
 
 	"github.com/domonda/go-types/strfmt"
 	"github.com/domonda/go-wraperr"
+	"github.com/ungerik/go-fs"
 )
 
 // type TableDetectionConfig struct {
@@ -36,26 +37,31 @@ type Reader struct {
 
 // NewReader reads from an io.Reader
 func NewReader(reader io.Reader, format *Format, newlineReplacement string, modifiers ModifierList, columns []ColumnMapping, scanConfig ...*strfmt.ScanConfig) (r *Reader, err error) {
-	defer wraperr.WithFuncParams(&err, reader)
+	defer wraperr.WithFuncParams(&err, reader, format, newlineReplacement, modifiers, columns, scanConfig)
 
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
 
-	// if format
-
 	rows, err := ParseStringsWithFormat(data, format)
 	if err != nil {
 		return nil, err
 	}
+
+	return NewReaderFromRows(rows, format, newlineReplacement, modifiers, columns, scanConfig...)
+}
+
+// NewReaderFromRows returns a Reader that uses pre-parsed rows
+func NewReaderFromRows(rows [][]string, format *Format, newlineReplacement string, modifiers ModifierList, columns []ColumnMapping, scanConfig ...*strfmt.ScanConfig) (r *Reader, err error) {
+	defer wraperr.WithFuncParams(&err, rows, format, newlineReplacement, modifiers, columns, scanConfig)
 
 	r = &Reader{
 		Format:     format,
 		ScanConfig: strfmt.DefaultScanConfig,
 		Modifiers:  modifiers,
 		Columns:    columns,
-		rows:       rows,
+		rows:       modifiers.Modify(rows),
 	}
 	if len(scanConfig) > 0 && scanConfig[0] != nil {
 		r.ScanConfig = scanConfig[0]
@@ -63,18 +69,18 @@ func NewReader(reader io.Reader, format *Format, newlineReplacement string, modi
 	return r, nil
 }
 
-// // NewReaderFromFile reads from a fs.FileReader
-// func NewReaderFromFile(file fs.FileReader, structSlicePtr interface{}) (err error) {
-// 	defer wraperr.WithFuncParams(&err, file, structSlicePtr)
+// NewReaderFromFile reads from a fs.FileReader
+func NewReaderFromFile(file fs.FileReader, format *Format, newlineReplacement string, modifiers ModifierList, columns []ColumnMapping, scanConfig ...*strfmt.ScanConfig) (r *Reader, err error) {
+	defer wraperr.WithFuncParams(&err, file, format, newlineReplacement, modifiers, columns, scanConfig)
 
-// 	reader, err := file.OpenReader()
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer reader.Close()
+	reader, err := file.OpenReader()
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
 
-// 	return r.Read(reader, structSlicePtr)
-// }
+	return NewReader(reader, format, newlineReplacement, modifiers, columns, scanConfig...)
+}
 
 func (r *Reader) NumRows() int {
 	return len(r.rows)
