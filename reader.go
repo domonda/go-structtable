@@ -3,7 +3,7 @@ package structtable
 import (
 	"reflect"
 
-	"github.com/domonda/go-wraperr"
+	"github.com/domonda/go-errs"
 )
 
 type Reader interface {
@@ -14,18 +14,18 @@ type Reader interface {
 
 func Read(reader Reader, structSlicePtr interface{}, numHeaderRows int) (headerRows [][]string, err error) {
 	if numHeaderRows < 0 {
-		return nil, wraperr.New("numHeaderRows can't be negative")
+		return nil, errs.New("numHeaderRows can't be negative")
 	}
 	destVal := reflect.ValueOf(structSlicePtr)
 	if destVal.Kind() != reflect.Ptr {
-		return nil, wraperr.Errorf("structSlicePtr must be pointer to a struct slice, but is %T", structSlicePtr)
+		return nil, errs.Errorf("structSlicePtr must be pointer to a struct slice, but is %T", structSlicePtr)
 	}
 	if destVal.IsNil() {
-		return nil, wraperr.Errorf("structSlicePtr must not be nil")
+		return nil, errs.Errorf("structSlicePtr must not be nil")
 	}
 	sliceType := destVal.Elem().Type()
 	if sliceType.Kind() != reflect.Slice {
-		return nil, wraperr.Errorf("structSlicePtr must be pointer to a struct slice, but is %T", structSlicePtr)
+		return nil, errs.Errorf("structSlicePtr must be pointer to a struct slice, but is %T", structSlicePtr)
 	}
 	structType := sliceType.Elem()
 	isSliceOfPtr := structType.Kind() == reflect.Ptr
@@ -33,7 +33,7 @@ func Read(reader Reader, structSlicePtr interface{}, numHeaderRows int) (headerR
 		structType = structType.Elem()
 	}
 	if structType.Kind() != reflect.Struct {
-		return nil, wraperr.Errorf("structSlicePtr must be pointer to a struct slice, but is %T", structSlicePtr)
+		return nil, errs.Errorf("structSlicePtr must be pointer to a struct slice, but is %T", structSlicePtr)
 	}
 
 	for i := 0; i < numHeaderRows && i < reader.NumRows(); i++ {

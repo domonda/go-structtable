@@ -6,7 +6,7 @@ import (
 
 	fs "github.com/ungerik/go-fs"
 
-	"github.com/domonda/go-wraperr"
+	"github.com/domonda/go-errs"
 )
 
 type Renderer interface {
@@ -24,7 +24,7 @@ type Renderer interface {
 func Render(renderer Renderer, structSlice interface{}, renderTitleRow bool, columnMapper ColumnMapper) error {
 	rows := reflect.ValueOf(structSlice)
 	if rows.Kind() != reflect.Slice {
-		return wraperr.Errorf("passed value is not a slice, but %T", structSlice)
+		return errs.Errorf("passed value is not a slice, but %T", structSlice)
 	}
 
 	columnTitles, rowReflector := columnMapper.ColumnTitlesAndRowReflector(rows.Type().Elem())

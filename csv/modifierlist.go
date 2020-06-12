@@ -3,7 +3,7 @@ package csv
 import (
 	"encoding/json"
 
-	"github.com/domonda/go-wraperr"
+	"github.com/domonda/go-errs"
 )
 
 type ModifierList []Modifier
@@ -35,7 +35,7 @@ func (l *ModifierList) UnmarshalJSON(data []byte) error {
 	for i, name := range names {
 		modifier, ok := ModifiersByName[name]
 		if !ok {
-			return wraperr.Errorf("can't find csv.Modifier with name %q", name)
+			return errs.Errorf("can't find csv.Modifier with name %q", name)
 		}
 		list[i] = modifier
 	}

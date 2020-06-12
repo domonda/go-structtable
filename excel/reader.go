@@ -7,7 +7,7 @@ import (
 	xlsx "github.com/tealeg/xlsx/v2"
 	fs "github.com/ungerik/go-fs"
 
-	"github.com/domonda/go-wraperr"
+	"github.com/domonda/go-errs"
 )
 
 type Reader struct {
@@ -38,7 +38,7 @@ func NewReader(xlsxFile fs.FileReader, sheetName string) (*Reader, error) {
 	if sheetName != "" {
 		reader.sheet = file.Sheet[sheetName]
 		if reader.sheet == nil {
-			return nil, wraperr.Errorf("excel file %s does not have a sheet called %q", xlsxFile, sheetName)
+			return nil, errs.Errorf("excel file %s does not have a sheet called %q", xlsxFile, sheetName)
 		}
 	} else {
 		reader.sheet = file.Sheets[0]
@@ -53,7 +53,7 @@ func (r *Reader) NumRows() int {
 
 func (r *Reader) ReadRowStrings(index int) ([]string, error) {
 	if index < 0 || index >= len(r.sheet.Rows) {
-		return nil, wraperr.Errorf("row index %d out of bounds", index)
+		return nil, errs.Errorf("row index %d out of bounds", index)
 	}
 
 	row := make([]string, len(r.sheet.Rows[index].Cells))
@@ -65,7 +65,7 @@ func (r *Reader) ReadRowStrings(index int) ([]string, error) {
 
 func (r *Reader) ReadRow(index int, destStruct reflect.Value) error {
 	if index < 0 || index >= len(r.sheet.Rows) {
-		return wraperr.Errorf("row index %d out of bounds", index)
+		return errs.Errorf("row index %d out of bounds", index)
 	}
 
 	cells := r.sheet.Rows[index].Cells

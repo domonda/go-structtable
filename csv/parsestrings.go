@@ -5,13 +5,13 @@ import (
 
 	"github.com/ungerik/go-fs"
 
+	"github.com/domonda/go-errs"
 	"github.com/domonda/go-types/charset"
-	"github.com/domonda/go-wraperr"
 )
 
 // FileParseStringsDetectFormat returns a slice of strings per row with the format detected via the FormatDetectionConfig.
 func FileParseStringsDetectFormat(csvFile fs.FileReader, config *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
-	defer wraperr.WithFuncParams(&err, csvFile, config)
+	defer errs.WrapWithFuncParams(&err, csvFile, config)
 
 	data, err := csvFile.ReadAll()
 	if err != nil {
@@ -23,7 +23,7 @@ func FileParseStringsDetectFormat(csvFile fs.FileReader, config *FormatDetection
 
 // ParseStringsDetectFormat returns a slice of strings per row with the format detected via the FormatDetectionConfig.
 func ParseStringsDetectFormat(data []byte, config *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
-	defer wraperr.WithFuncParams(&err, data, config)
+	defer errs.WrapWithFuncParams(&err, data, config)
 
 	format, lines, err := detectFormatAndSplitLines(data, config)
 	if err != nil {
@@ -35,7 +35,7 @@ func ParseStringsDetectFormat(data []byte, config *FormatDetectionConfig) (rows 
 }
 
 func ParseStringsWithFormat(data []byte, format *Format) (rows [][]string, err error) {
-	defer wraperr.WithFuncParams(&err, data, format)
+	defer errs.WrapWithFuncParams(&err, data, format)
 
 	if format.Encoding != "" && format.Encoding != "UTF-8" {
 		enc, err := charset.GetEncoding(format.Encoding)
@@ -53,7 +53,7 @@ func ParseStringsWithFormat(data []byte, format *Format) (rows [][]string, err e
 }
 
 func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (format *Format, lines [][]byte, err error) {
-	defer wraperr.WithFuncParams(&err, data, config)
+	defer errs.WrapWithFuncParams(&err, data, config)
 
 	format = new(Format)
 
@@ -218,7 +218,7 @@ func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (form
 }
 
 func readLines(lines [][]byte, separator []byte, newlineReplacement string) (rows [][]string, err error) {
-	defer wraperr.WithFuncParams(&err, lines, separator, newlineReplacement)
+	defer errs.WrapWithFuncParams(&err, lines, separator, newlineReplacement)
 
 	rows = make([][]string, len(lines))
 	for lineIndex, line := range lines {
@@ -338,7 +338,7 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 				}
 
 			default:
-				return nil, wraperr.Errorf("can't handle CSV field `%s` in line `%s`", field, line)
+				return nil, errs.Errorf("can't handle CSV field `%s` in line `%s`", field, line)
 				// Examples for this error:
 				// /var/domonda-data/documents/39/d20/301/65394733/b7e967e7f98ec1e8/2019-01-03_09-46-50.435/doc.csv
 				// Double embedded fields:

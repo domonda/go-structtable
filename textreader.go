@@ -3,8 +3,8 @@ package structtable
 import (
 	"reflect"
 
+	"github.com/domonda/go-errs"
 	"github.com/domonda/go-types/strfmt"
-	"github.com/domonda/go-wraperr"
 )
 
 type TextReader struct {
@@ -33,13 +33,13 @@ func (tr *TextReader) NumRows() int {
 
 func (tr *TextReader) ReadRow(index int, destStruct reflect.Value) error {
 	if index < 0 || index >= len(tr.rows) {
-		return wraperr.Errorf("row index %d out of range [0..%d)", index, len(tr.rows))
+		return errs.Errorf("row index %d out of range [0..%d)", index, len(tr.rows))
 	}
 	row := tr.rows[index]
 
 	for col, name := range tr.columnMapping {
 		if col < 0 || col >= len(row) {
-			return wraperr.Errorf("row %d column index %d out of range [0..%d)", index, col, len(row))
+			return errs.Errorf("row %d column index %d out of range [0..%d)", index, col, len(row))
 		}
 
 		// Find struct field with name
@@ -56,12 +56,12 @@ func (tr *TextReader) ReadRow(index int, destStruct reflect.Value) error {
 			}
 		}
 		if !destVal.IsValid() {
-			return wraperr.Errorf("no struct field %q found in %s using tag %q", name, destStruct.Type(), tr.columnTitleTag)
+			return errs.Errorf("no struct field %q found in %s using tag %q", name, destStruct.Type(), tr.columnTitleTag)
 		}
 
 		err := strfmt.Scan(destVal, row[col], tr.scanConfig)
 		if err != nil {
-			return wraperr.Errorf("error reading row %d, column %d: %w", index, col, err)
+			return errs.Errorf("error reading row %d, column %d: %w", index, col, err)
 		}
 	}
 

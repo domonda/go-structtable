@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"reflect"
 
+	"github.com/domonda/go-errs"
 	"github.com/domonda/go-types/strfmt"
-	"github.com/domonda/go-wraperr"
 	"github.com/ungerik/go-fs"
 )
 
@@ -37,7 +37,7 @@ type Reader struct {
 
 // NewReader reads from an io.Reader
 func NewReader(reader io.Reader, format *Format, newlineReplacement string, modifiers ModifierList, columns []ColumnMapping, scanConfig ...*strfmt.ScanConfig) (r *Reader, err error) {
-	defer wraperr.WithFuncParams(&err, reader, format, newlineReplacement, modifiers, columns, scanConfig)
+	defer errs.WrapWithFuncParams(&err, reader, format, newlineReplacement, modifiers, columns, scanConfig)
 
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {
@@ -54,7 +54,7 @@ func NewReader(reader io.Reader, format *Format, newlineReplacement string, modi
 
 // NewReaderFromRows returns a Reader that uses pre-parsed rows
 func NewReaderFromRows(rows [][]string, format *Format, newlineReplacement string, modifiers ModifierList, columns []ColumnMapping, scanConfig ...*strfmt.ScanConfig) (r *Reader, err error) {
-	defer wraperr.WithFuncParams(&err, rows, format, newlineReplacement, modifiers, columns, scanConfig)
+	defer errs.WrapWithFuncParams(&err, rows, format, newlineReplacement, modifiers, columns, scanConfig)
 
 	r = &Reader{
 		Format:     format,
@@ -71,7 +71,7 @@ func NewReaderFromRows(rows [][]string, format *Format, newlineReplacement strin
 
 // NewReaderFromFile reads from a fs.FileReader
 func NewReaderFromFile(file fs.FileReader, format *Format, newlineReplacement string, modifiers ModifierList, columns []ColumnMapping, scanConfig ...*strfmt.ScanConfig) (r *Reader, err error) {
-	defer wraperr.WithFuncParams(&err, file, format, newlineReplacement, modifiers, columns, scanConfig)
+	defer errs.WrapWithFuncParams(&err, file, format, newlineReplacement, modifiers, columns, scanConfig)
 
 	reader, err := file.OpenReader()
 	if err != nil {
@@ -88,14 +88,14 @@ func (r *Reader) NumRows() int {
 
 func (r *Reader) ReadRowStrings(index int) ([]string, error) {
 	if index < 0 || index > len(r.rows) {
-		return nil, wraperr.Errorf("row index %d out of bounds [0..%d)", index, len(r.rows))
+		return nil, errs.Errorf("row index %d out of bounds [0..%d)", index, len(r.rows))
 	}
 	return r.rows[index], nil
 }
 
 func (r *Reader) ReadRow(index int, destStruct reflect.Value) error {
 	if index < 0 || index >= len(r.rows) {
-		return wraperr.Errorf("row index %d out of bounds [0..%d)", index, len(r.rows))
+		return errs.Errorf("row index %d out of bounds [0..%d)", index, len(r.rows))
 	}
 
 	row := r.rows[index]
@@ -109,7 +109,7 @@ func (r *Reader) ReadRow(index int, destStruct reflect.Value) error {
 		}
 		err := strfmt.Scan(destStructField, row[col.Index], r.ScanConfig)
 		if err != nil {
-			return wraperr.Errorf("error parsing row %d, column %d string %q: %w", index, col.Index, row[col.Index], err)
+			return errs.Errorf("error parsing row %d, column %d string %q: %w", index, col.Index, row[col.Index], err)
 		}
 	}
 
@@ -118,7 +118,7 @@ func (r *Reader) ReadRow(index int, destStruct reflect.Value) error {
 
 // // Read reads from an io.Reader to a structSlicePtr
 // func (r *Reader) Read(reader io.Reader, structSlicePtr interface{}) (err error) {
-// 	defer wraperr.WithFuncParams(&err, reader, structSlicePtr)
+// 	defer errs.WrapWithFuncParams(&err, reader, structSlicePtr)
 
 // 	data, err := ioutil.ReadAll(reader)
 // 	if err != nil {
@@ -135,7 +135,7 @@ func (r *Reader) ReadRow(index int, destStruct reflect.Value) error {
 
 // // ReadFile reads from a fs.FileReader to a structSlicePtr
 // func (r *Reader) ReadFile(file fs.FileReader, structSlicePtr interface{}) (err error) {
-// 	defer wraperr.WithFuncParams(&err, file, structSlicePtr)
+// 	defer errs.WrapWithFuncParams(&err, file, structSlicePtr)
 
 // 	reader, err := file.OpenReader()
 // 	if err != nil {
