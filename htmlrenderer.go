@@ -62,7 +62,7 @@ func (htm *HTMLRenderer) RenderHeaderRow(columnTitles []string) error {
 	caption := htm.TableConfig.Caption
 	if caption != "" {
 		if htm.TableConfig.CaptionClass != "" {
-			err = htm.write("<caption class='%s'>%s</caption>\n", caption, html.EscapeString(htm.TableConfig.CaptionClass))
+			err = htm.write("<caption class='%s'>%s</caption>\n", html.EscapeString(htm.TableConfig.CaptionClass), caption)
 		} else {
 			err = htm.write("<caption>%s</caption>\n", caption)
 		}
@@ -80,7 +80,7 @@ func (htm *HTMLRenderer) RenderHeaderRow(columnTitles []string) error {
 	}
 	for _, columnTitle := range columnTitles {
 		if htm.TableConfig.HeaderCellClass != "" || htm.TableConfig.CellClass != "" {
-			err = htm.write("<th class='%s'>%s</th>", columnTitle, strings.TrimSpace(htm.TableConfig.HeaderCellClass+" "+htm.TableConfig.CellClass))
+			err = htm.write("<th class='%s'>%s</th>", strings.TrimSpace(htm.TableConfig.HeaderCellClass+" "+htm.TableConfig.CellClass), columnTitle)
 		} else {
 			err = htm.write("<th>%s</th>", columnTitle)
 		}
@@ -113,7 +113,7 @@ func (htm *HTMLRenderer) RenderRow(columnValues []reflect.Value) error {
 		}
 
 		if htm.TableConfig.DataCellClass != "" || htm.TableConfig.CellClass != "" {
-			err = htm.write("<td class='%s'>%s</td>", str, strings.TrimSpace(htm.TableConfig.DataCellClass+" "+htm.TableConfig.CellClass))
+			err = htm.write("<td class='%s'>%s</td>", strings.TrimSpace(htm.TableConfig.DataCellClass+" "+htm.TableConfig.CellClass), str)
 		} else {
 			err = htm.write("<td>%s</td>", str)
 		}
