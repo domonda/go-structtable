@@ -7,6 +7,7 @@ import (
 	"math/rand"
 
 	"github.com/domonda/go-structtable"
+	"github.com/domonda/go-types/txtfmt"
 )
 
 var (
@@ -18,7 +19,7 @@ var (
 
 // Render is a shortcut to render a HTML table with english text formating
 func Render(writer io.Writer, structSlice interface{}, renderTitleRow bool, columnMapper structtable.ColumnMapper) error {
-	renderer := NewRenderer(structtable.NewEnglishTextFormatConfig())
+	renderer := NewRenderer(txtfmt.NewEnglishFormatConfig())
 	return structtable.RenderTo(writer, renderer, structSlice, renderTitleRow, columnMapper)
 }
 
@@ -28,7 +29,7 @@ type Renderer struct {
 	elemClass      string
 }
 
-func NewRenderer(config *structtable.TextFormatConfig) *Renderer {
+func NewRenderer(config *txtfmt.FormatConfig) *Renderer {
 	r := &Renderer{}
 	r.TextRenderer = structtable.NewTextRenderer(r, config)
 	return r

@@ -8,6 +8,7 @@ import (
 
 	"github.com/domonda/go-structtable"
 	"github.com/domonda/go-types/charset"
+	"github.com/domonda/go-types/txtfmt"
 )
 
 var (
@@ -23,7 +24,7 @@ type Renderer struct {
 	newLine       []byte
 }
 
-func NewRenderer(config *structtable.TextFormatConfig) *Renderer {
+func NewRenderer(config *txtfmt.FormatConfig) *Renderer {
 	csv := &Renderer{
 		headerComment: nil,
 		delimiter:     []byte{';'},
