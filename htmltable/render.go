@@ -52,10 +52,14 @@ func (r *Renderer) RenderBeforeTable(writer io.Writer) error {
 	tr.%s:nth-child(odd) {
 		background-color: #00000014
 	}
+	tr.%s:nth-child(even) {
+		background-color: #ffffff
+	}
 </style>`,
 		r.TableConfig.TableClass, r.TableConfig.CellClass, r.TableConfig.CellClass, r.TableConfig.HeaderRowClass,
 		r.TableConfig.CaptionClass,
 		r.TableConfig.HeaderRowClass,
+		r.TableConfig.DataRowClass,
 		r.TableConfig.DataRowClass,
 	)
 	return err
