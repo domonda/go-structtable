@@ -6,11 +6,10 @@ import (
 	"html"
 	"io"
 	"reflect"
-	"strconv"
 
-	"github.com/domonda/go-types/strfmt"
+	"github.com/domonda/go-types/txtfmt"
 	fs "github.com/ungerik/go-fs"
-	reflection "github.com/ungerik/go-reflection"
+	"github.com/ungerik/go-reflection"
 )
 
 // HTMLFormatRenderer is the renderer for the HTML format.
@@ -23,11 +22,11 @@ type HTMLFormatRenderer interface {
 // for a specific text based table format.
 type HTMLRenderer struct {
 	format HTMLFormatRenderer
-	config *TextFormatConfig
+	config *txtfmt.FormatConfig
 	buf    bytes.Buffer
 }
 
-func NewHTMLRenderer(format HTMLFormatRenderer, config *TextFormatConfig) *HTMLRenderer {
+func NewHTMLRenderer(format HTMLFormatRenderer, config *txtfmt.FormatConfig) *HTMLRenderer {
 	return &HTMLRenderer{format: format, config: config}
 }
 
@@ -37,7 +36,7 @@ func (htm *HTMLRenderer) RenderHeaderRow(columnTitles []string) error {
 		return err
 	}
 
-	err := htm.write("<table>\n")
+	err = htm.write("<table>\n")
 	if err != nil {
 		return err
 	}
@@ -69,11 +68,14 @@ func (htm *HTMLRenderer) RenderRow(columnValues []reflect.Value) error {
 	}
 
 	for _, columnValue := range columnValues {
-		str, hasOwnFormatter := htm.toString(columnValue)
+		str := txtfmt.FormatValue(columnValue, htm.config)
+
 		// if the value does not have its own formatter, escape the resulting string
-		if !hasOwnFormatter {
+		_, derefType := reflection.DerefValueAndType(columnValue)
+		if _, ok := htm.config.TypeFormatters[derefType]; !ok {
 			str = html.EscapeString(str)
 		}
+
 		err := htm.write("<td>%s</td>", str)
 		if err != nil {
 			return err
@@ -113,63 +115,4 @@ func (*HTMLRenderer) MIMEType() string {
 func (htm *HTMLRenderer) write(format string, a ...interface{}) error {
 	_, err := fmt.Fprintf(&htm.buf, format, a...)
 	return err
-}
-
-func (htm *HTMLRenderer) toString(val reflect.Value) (str string, hasOwnFormatter bool) {
-	valType := val.Type()
-	derefVal, derefType := reflection.DerefValueAndType(val)
-
-	if f, ok := htm.config.TypeFormatters[derefType]; ok && derefVal.IsValid() {
-		return f.FormatValue(derefVal, htm.config), true
-	}
-
-	switch valType.Kind() {
-	case reflect.Ptr, reflect.Interface:
-		if val.IsNil() {
-			return htm.config.Nil, false
-		}
-	}
-
-	switch derefType.Kind() {
-	case reflect.Bool:
-		if derefVal.Bool() {
-			return htm.config.True, false
-		}
-		return htm.config.False, false
-
-	case reflect.String:
-		return derefVal.String(), false
-
-	case reflect.Float32, reflect.Float64:
-		return strfmt.FormatFloat(
-			derefVal.Float(),
-			htm.config.Float.ThousandsSep,
-			htm.config.Float.DecimalSep,
-			htm.config.Float.Precision,
-			htm.config.Float.PadPrecision,
-		), false
-
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return strconv.FormatInt(derefVal.Int(), 10), false
-
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return strconv.FormatUint(derefVal.Uint(), 10), false
-	}
-
-	if s, ok := val.Interface().(fmt.Stringer); ok {
-		return s.String(), false
-	}
-	if s, ok := val.Addr().Interface().(fmt.Stringer); ok {
-		return s.String(), false
-	}
-	if s, ok := derefVal.Interface().(fmt.Stringer); ok {
-		return s.String(), false
-	}
-
-	switch x := derefVal.Interface().(type) {
-	case []byte:
-		return string(x), false
-	}
-
-	return fmt.Sprint(val.Interface()), false
 }
