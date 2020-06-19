@@ -17,6 +17,7 @@ func NewRenderer(caption string, config *txtfmt.FormatConfig) *Renderer {
 	r := &Renderer{}
 	table := &structtable.HTMLTableConfig{
 		Caption:        caption,
+		CaptionClass:   fmt.Sprintf("c%d", rand.Uint32()),
 		TableClass:     fmt.Sprintf("c%d", rand.Uint32()),
 		CellClass:      fmt.Sprintf("c%d", rand.Uint32()),
 		HeaderRowClass: fmt.Sprintf("c%d", rand.Uint32()),
@@ -37,8 +38,13 @@ func (r *Renderer) RenderBeforeTable(writer io.Writer) error {
 	table.%s, th.%s, td.%s, th.%s {
 		border-collapse: collapse;
 		border: 1px solid black;
-		padding: 4px;
+		padding: 6px 12px;
 		white-space: nowrap;
+	}
+	caption.%s {
+		font-size: 1.4em;
+    text-align: left;
+    margin-bottom: 8px;
 	}
 	tr.%s {
 		background-color: #00000052
@@ -48,6 +54,7 @@ func (r *Renderer) RenderBeforeTable(writer io.Writer) error {
 	}
 </style>`,
 		r.TableConfig.TableClass, r.TableConfig.CellClass, r.TableConfig.CellClass, r.TableConfig.HeaderRowClass,
+		r.TableConfig.CaptionClass,
 		r.TableConfig.HeaderRowClass,
 		r.TableConfig.DataRowClass,
 	)
