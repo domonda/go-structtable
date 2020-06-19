@@ -22,10 +22,9 @@ type HTMLFormatRenderer interface {
 // HTMLRenderer implements Renderer by using a HTMLFormatRenderer
 // for a specific text based table format.
 type HTMLRenderer struct {
-	format         HTMLFormatRenderer
-	config         *TextFormatConfig
-	typeFormatters map[reflect.Type]TextFormatter
-	buf            bytes.Buffer
+	format HTMLFormatRenderer
+	config *TextFormatConfig
+	buf    bytes.Buffer
 }
 
 func NewHTMLRenderer(format HTMLFormatRenderer, config *TextFormatConfig) *HTMLRenderer {
