@@ -22,17 +22,14 @@ type HTMLFormatRenderer interface {
 // HTMLRenderer implements Renderer by using a HTMLFormatRenderer
 // for a specific text based table format.
 type HTMLRenderer struct {
-	format             HTMLFormatRenderer
-	config             *TextFormatConfig
-	typeFormatters     map[reflect.Type]TextFormatter
-	buf                bytes.Buffer
+	format         HTMLFormatRenderer
+	config         *TextFormatConfig
+	typeFormatters map[reflect.Type]TextFormatter
+	buf            bytes.Buffer
 }
 
 func NewHTMLRenderer(format HTMLFormatRenderer, config *TextFormatConfig) *HTMLRenderer {
-	return &HTMLRenderer{
-		format: format,
-		config: config,
-	}
+	return &HTMLRenderer{format: format, config: config}
 }
 
 func (htm *HTMLRenderer) RenderHeaderRow(columnTitles []string) error {
@@ -145,13 +142,13 @@ func (htm *HTMLRenderer) toString(val reflect.Value) (str string, hasOwnFormatte
 		return derefVal.String(), false
 
 	case reflect.Float32, reflect.Float64:
-		return strfmt.FormatFloat(, false
+		return strfmt.FormatFloat(
 			derefVal.Float(),
 			htm.config.Float.ThousandsSep,
 			htm.config.Float.DecimalSep,
 			htm.config.Float.Precision,
 			htm.config.Float.PadPrecision,
-		)
+		), false
 
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return strconv.FormatInt(derefVal.Int(), 10), false
