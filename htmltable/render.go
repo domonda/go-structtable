@@ -17,10 +17,10 @@ func NewRenderer(caption string, config *txtfmt.FormatConfig) *Renderer {
 	r := &Renderer{}
 	table := &structtable.HTMLTableConfig{
 		Caption:        caption,
-		TableClass:     fmt.Sprintf("%d", rand.Uint32()),
-		HeaderRowClass: fmt.Sprintf("%d", rand.Uint32()),
-		DataRowClass:   fmt.Sprintf("%d", rand.Uint32()),
-		DataCellClass:  fmt.Sprintf("%d", rand.Uint32()),
+		TableClass:     fmt.Sprintf("c%d", rand.Uint32()),
+		CellClass:      fmt.Sprintf("c%d", rand.Uint32()),
+		HeaderRowClass: fmt.Sprintf("c%d", rand.Uint32()),
+		DataRowClass:   fmt.Sprintf("c%d", rand.Uint32()),
 	}
 	r.HTMLRenderer = structtable.NewHTMLRenderer(r, table, config)
 	return r
@@ -34,7 +34,8 @@ func Render(writer io.Writer, structSlice interface{}, caption string, renderHea
 
 func (r *Renderer) RenderBeforeTable(writer io.Writer) error {
 	_, err := fmt.Fprintf(writer, `<style type='text/css'>
-	table.%s, td.%s, th.%s {
+	table.%s, th.%s, td.%s, th.%s {
+		border-collapse: collapse;
 		border: 1px solid black;
 		padding: 4px;
 		white-space: nowrap;
@@ -46,7 +47,7 @@ func (r *Renderer) RenderBeforeTable(writer io.Writer) error {
 		background-color: #00000014
 	}
 </style>`,
-		r.TableConfig.TableClass, r.TableConfig.DataCellClass, r.TableConfig.HeaderRowClass,
+		r.TableConfig.TableClass, r.TableConfig.CellClass, r.TableConfig.CellClass, r.TableConfig.HeaderRowClass,
 		r.TableConfig.HeaderRowClass,
 		r.TableConfig.DataRowClass,
 	)
