@@ -15,12 +15,13 @@ import (
 
 // HTMLFormatRenderer is the renderer for the HTML format.
 type HTMLFormatRenderer interface {
+	// RenderBeforeTable is useful when you want to add custom styles or render anything before the table element.
 	RenderBeforeTable(writer io.Writer) error
-	Caption() string
 }
 
 // HTMLTableConfig is the config for the actual, visual, resulting HTML table.
 type HTMLTableConfig struct {
+	Caption         string
 	TableClass      string
 	CaptionClass    string
 	RowClass        string
@@ -35,13 +36,13 @@ type HTMLTableConfig struct {
 // for a specific text based table format.
 type HTMLRenderer struct {
 	format      HTMLFormatRenderer
+	TableConfig *HTMLTableConfig
 	config      *txtfmt.FormatConfig
-	tableConfig *HTMLTableConfig
 	buf         bytes.Buffer
 }
 
-func NewHTMLRenderer(format HTMLFormatRenderer, config *txtfmt.FormatConfig, tableConfig *HTMLTableConfig) *HTMLRenderer {
-	return &HTMLRenderer{format: format, config: config, tableConfig: tableConfig}
+func NewHTMLRenderer(format HTMLFormatRenderer, TableConfig *HTMLTableConfig, config *txtfmt.FormatConfig) *HTMLRenderer {
+	return &HTMLRenderer{format: format, TableConfig: TableConfig, config: config}
 }
 
 func (htm *HTMLRenderer) RenderHeaderRow(columnTitles []string) error {
@@ -50,18 +51,18 @@ func (htm *HTMLRenderer) RenderHeaderRow(columnTitles []string) error {
 		return err
 	}
 
-	if htm.tableConfig.TableClass != "" {
-		err = htm.write("<table class='%s'>\n", html.EscapeString(htm.tableConfig.TableClass))
+	if htm.TableConfig.TableClass != "" {
+		err = htm.write("<table class='%s'><tbody>\n", html.EscapeString(htm.TableConfig.TableClass))
 	} else {
-		err = htm.write("<table>\n")
+		err = htm.write("<table><tbody>\n")
 	}
 	if err != nil {
 		return err
 	}
-	caption := htm.format.Caption()
+	caption := htm.TableConfig.Caption
 	if caption != "" {
-		if htm.tableConfig.CaptionClass != "" {
-			err = htm.write("<caption class='%s'>%s</caption>\n", caption, html.EscapeString(htm.tableConfig.CaptionClass))
+		if htm.TableConfig.CaptionClass != "" {
+			err = htm.write("<caption class='%s'>%s</caption>\n", caption, html.EscapeString(htm.TableConfig.CaptionClass))
 		} else {
 			err = htm.write("<caption>%s</caption>\n", caption)
 		}
@@ -69,8 +70,8 @@ func (htm *HTMLRenderer) RenderHeaderRow(columnTitles []string) error {
 			return err
 		}
 	}
-	if htm.tableConfig.HeaderRowClass != "" || htm.tableConfig.RowClass != "" {
-		err = htm.write("<tr class='%s'>\n", strings.TrimSpace(htm.tableConfig.HeaderRowClass+" "+htm.tableConfig.RowClass))
+	if htm.TableConfig.HeaderRowClass != "" || htm.TableConfig.RowClass != "" {
+		err = htm.write("<tr class='%s'>\n", strings.TrimSpace(htm.TableConfig.HeaderRowClass+" "+htm.TableConfig.RowClass))
 	} else {
 		err = htm.write("<tr>\n")
 	}
@@ -78,8 +79,8 @@ func (htm *HTMLRenderer) RenderHeaderRow(columnTitles []string) error {
 		return err
 	}
 	for _, columnTitle := range columnTitles {
-		if htm.tableConfig.HeaderCellClass != "" || htm.tableConfig.CellClass != "" {
-			err = htm.write("<th class='%s'>%s</th>", columnTitle, strings.TrimSpace(htm.tableConfig.HeaderCellClass+" "+htm.tableConfig.CellClass))
+		if htm.TableConfig.HeaderCellClass != "" || htm.TableConfig.CellClass != "" {
+			err = htm.write("<th class='%s'>%s</th>", columnTitle, strings.TrimSpace(htm.TableConfig.HeaderCellClass+" "+htm.TableConfig.CellClass))
 		} else {
 			err = htm.write("<th>%s</th>", columnTitle)
 		}
@@ -93,8 +94,8 @@ func (htm *HTMLRenderer) RenderHeaderRow(columnTitles []string) error {
 
 func (htm *HTMLRenderer) RenderRow(columnValues []reflect.Value) error {
 	var err error
-	if htm.tableConfig.DataRowClass != "" || htm.tableConfig.RowClass != "" {
-		err = htm.write("<tr class='%s'>\n", strings.TrimSpace(htm.tableConfig.DataRowClass+" "+htm.tableConfig.RowClass))
+	if htm.TableConfig.DataRowClass != "" || htm.TableConfig.RowClass != "" {
+		err = htm.write("<tr class='%s'>\n", strings.TrimSpace(htm.TableConfig.DataRowClass+" "+htm.TableConfig.RowClass))
 	} else {
 		err = htm.write("<tr>\n")
 	}
@@ -111,8 +112,8 @@ func (htm *HTMLRenderer) RenderRow(columnValues []reflect.Value) error {
 			str = html.EscapeString(str)
 		}
 
-		if htm.tableConfig.DataCellClass != "" || htm.tableConfig.CellClass != "" {
-			err = htm.write("<td class='%s'>%s</td>", str, strings.TrimSpace(htm.tableConfig.DataCellClass+" "+htm.tableConfig.CellClass))
+		if htm.TableConfig.DataCellClass != "" || htm.TableConfig.CellClass != "" {
+			err = htm.write("<td class='%s'>%s</td>", str, strings.TrimSpace(htm.TableConfig.DataCellClass+" "+htm.TableConfig.CellClass))
 		} else {
 			err = htm.write("<td>%s</td>", str)
 		}
@@ -125,7 +126,7 @@ func (htm *HTMLRenderer) RenderRow(columnValues []reflect.Value) error {
 }
 
 func (htm *HTMLRenderer) Result() ([]byte, error) {
-	_, err := htm.buf.WriteString("</table>\n")
+	_, err := htm.buf.WriteString("</tbody></table>\n")
 	if err != nil {
 		return nil, err
 	}
