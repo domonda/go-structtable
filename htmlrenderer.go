@@ -26,7 +26,6 @@ type HTMLRenderer struct {
 	config             *TextFormatConfig
 	typeFormatters     map[reflect.Type]TextFormatter
 	buf                bytes.Buffer
-	beforeTableWritten bool
 }
 
 func NewHTMLRenderer(format HTMLFormatRenderer, config *TextFormatConfig) *HTMLRenderer {
@@ -37,12 +36,11 @@ func NewHTMLRenderer(format HTMLFormatRenderer, config *TextFormatConfig) *HTMLR
 }
 
 func (htm *HTMLRenderer) RenderHeaderRow(columnTitles []string) error {
-	if !htm.beforeTableWritten {
-		err := htm.format.RenderBeforeTable(&htm.buf)
-		if err != nil {
-			return err
-		}
+	err := htm.format.RenderBeforeTable(&htm.buf)
+	if err != nil {
+		return err
 	}
+
 	err := htm.write("<table>\n")
 	if err != nil {
 		return err
