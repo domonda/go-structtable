@@ -34,28 +34,30 @@ func Render(writer io.Writer, structSlice interface{}, caption string, renderHea
 }
 
 func (r *Renderer) RenderBeforeTable(writer io.Writer) error {
-	_, err := fmt.Fprintf(writer, `<style type='text/css'>
-	table.%s, th.%s, td.%s, th.%s {
-		border-collapse: collapse;
-		border: 1px solid black;
-		padding: 6px 12px;
-		white-space: nowrap;
-	}
-	caption.%s {
-		font-size: 1.4em;
-    text-align: left;
-    margin-bottom: 8px;
-	}
-	tr.%s {
-		background-color: #00000052
-	}
-	tr.%s:nth-child(odd) {
-		background-color: #00000014
-	}
-	tr.%s:nth-child(even) {
-		background-color: #ffffff
-	}
-</style>`,
+	_, err := fmt.Fprintf(
+		writer,
+		`<style type='text/css'>
+			table.%s, th.%s, td.%s, th.%s {
+				border-collapse: collapse;
+				border: 1px solid black;
+				padding: 6px 12px;
+				white-space: nowrap;
+			}
+			caption.%s {
+				font-size: 1.4em;
+				text-align: left;
+				margin-bottom: 8px;
+			}
+			tr.%s {
+				background-color: #00000052
+			}
+			tr.%s:nth-child(odd) {
+				background-color: #00000014
+			}
+			tr.%s:nth-child(even) {
+				background-color: #ffffff
+			}
+		</style>`,
 		r.TableConfig.TableClass, r.TableConfig.CellClass, r.TableConfig.CellClass, r.TableConfig.HeaderRowClass,
 		r.TableConfig.CaptionClass,
 		r.TableConfig.HeaderRowClass,
