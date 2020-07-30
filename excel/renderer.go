@@ -13,6 +13,7 @@ import (
 
 	"github.com/domonda/go-types/date"
 	"github.com/domonda/go-types/money"
+	"github.com/domonda/go-types/nullable"
 )
 
 const ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -22,7 +23,7 @@ type ExcelFormatConfig struct {
 	Time     string
 	Date     string
 	Location *time.Location
-	Nil      string
+	Null     string
 }
 
 type ExcelCellWriter interface {
@@ -114,7 +115,6 @@ func (excel *Renderer) RenderRow(columnValues []reflect.Value) error {
 		cell := row.AddCell()
 		cell.SetStyle(excel.cellStyle)
 
-		valType := val.Type()
 		derefVal, derefType := reflection.DerefValueAndType(val)
 
 		if w, ok := excel.TypeCellWriters[derefType]; ok && derefVal.IsValid() {
@@ -127,14 +127,11 @@ func (excel *Renderer) RenderRow(columnValues []reflect.Value) error {
 			continue
 		}
 
-		switch valType.Kind() {
-		case reflect.Ptr, reflect.Interface:
-			if val.IsNil() {
-				if excel.Config.Nil != "" {
-					cell.SetString(excel.Config.Nil)
-				}
-				continue
+		if nullable.ReflectIsNull(val) {
+			if excel.Config.Null != "" {
+				cell.SetString(excel.Config.Null)
 			}
+			continue
 		}
 
 		switch derefType.Kind() {
@@ -169,9 +166,11 @@ func (excel *Renderer) RenderRow(columnValues []reflect.Value) error {
 			cell.SetString(s.String())
 			continue
 		}
-		if s, ok := val.Addr().Interface().(fmt.Stringer); ok {
-			cell.SetString(s.String())
-			continue
+		if val.CanAddr() {
+			if s, ok := val.Addr().Interface().(fmt.Stringer); ok {
+				cell.SetString(s.String())
+				continue
+			}
 		}
 		if s, ok := derefVal.Interface().(fmt.Stringer); ok {
 			cell.SetString(s.String())
