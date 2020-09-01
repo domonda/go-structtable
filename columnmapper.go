@@ -5,15 +5,16 @@ import (
 	"go/token"
 	"reflect"
 	"strings"
+	"unicode"
 )
 
 // DefaultReflectColumnTitles provides the default ReflectColumnTitles
-// using "col" as Tag and a nil UntaggedFieldTitle
-// that results in using the field name unchaged if there is no Tag tag.
+// using "col" as Tag and the SpacePascalCase function for UntaggedFieldTitle.
 // Implements ColumnMapper.
 var DefaultReflectColumnTitles = &ReflectColumnTitles{
-	Tag:         "col",
-	IgnoreTitle: "-",
+	Tag:                "col",
+	IgnoreTitle:        "-",
+	UntaggedFieldTitle: SpacePascalCase,
 }
 
 // RowReflector is used to reflect column values from the fields of a struct
@@ -226,4 +227,33 @@ func StructFieldValues(structValue reflect.Value) (values []reflect.Value) {
 		}
 	}
 	return values
+}
+
+// SpacePascalCase inserts spaces before upper case
+// characters within PascalCase like names.
+// It also replaces underscore '_' characters with spaces.
+// Usable for ReflectColumnTitles.UntaggedFieldTitle
+func SpacePascalCase(name string) string {
+	var b strings.Builder
+	b.Grow(len(name) + 4)
+	lastWasUpper := true
+	lastWasSpace := true
+	for _, r := range name {
+		if r == '_' {
+			if !lastWasSpace {
+				b.WriteByte(' ')
+			}
+			lastWasUpper = false
+			lastWasSpace = true
+			continue
+		}
+		isUpper := unicode.IsUpper(r)
+		if isUpper && !lastWasUpper && !lastWasSpace {
+			b.WriteByte(' ')
+		}
+		b.WriteRune(r)
+		lastWasUpper = isUpper
+		lastWasSpace = unicode.IsSpace(r)
+	}
+	return strings.TrimSpace(b.String())
 }
