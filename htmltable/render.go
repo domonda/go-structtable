@@ -41,7 +41,6 @@ func (r *Renderer) RenderBeforeTable(writer io.Writer) error {
 				border-collapse: collapse;
 				border: 1px solid black;
 				padding: 6px 12px;
-				white-space: nowrap;
 			}
 			caption.%s {
 				font-size: 1.4em;
