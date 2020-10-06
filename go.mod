@@ -3,9 +3,9 @@ module github.com/domonda/go-structtable
 go 1.13
 
 require (
-	github.com/domonda/go-errs v0.0.0-20200827162608-71885d0d4c93
+	github.com/domonda/go-errs v0.0.0-20200921134138-6227bcb5863d
 	github.com/domonda/go-pretty v0.0.0-20200724133603-6505387f1bb4 // indirect
-	github.com/domonda/go-types v0.0.0-20200909160145-4767dbad3c07
+	github.com/domonda/go-types v0.0.0-20200924083638-39ebc21394cd
 	github.com/stretchr/testify v1.6.1
 	github.com/tealeg/xlsx/v2 v2.0.1
 	github.com/ungerik/go-fs v0.0.0-20200821085535-43255b165ff2

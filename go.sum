@@ -35,6 +35,8 @@ github.com/domonda/go-errs v0.0.0-20200714122316-e42946dde14a h1:BZo2wv5eABpQhGr
 github.com/domonda/go-errs v0.0.0-20200714122316-e42946dde14a/go.mod h1:HQx18q2OogJdfwry2xL6G+ogj15H3Jd8kce29foirGA=
 github.com/domonda/go-errs v0.0.0-20200827162608-71885d0d4c93 h1:n3Cu1Fc+uIBREmQkQSM2Qx5KI/Dka8Kt/sI7lXpTzDg=
 github.com/domonda/go-errs v0.0.0-20200827162608-71885d0d4c93/go.mod h1:HQx18q2OogJdfwry2xL6G+ogj15H3Jd8kce29foirGA=
+github.com/domonda/go-errs v0.0.0-20200921134138-6227bcb5863d h1:m7edE5jW2BgzLWhDYUw77ViHjWjkDTO4Uz9ndjv3HdQ=
+github.com/domonda/go-errs v0.0.0-20200921134138-6227bcb5863d/go.mod h1:HQx18q2OogJdfwry2xL6G+ogj15H3Jd8kce29foirGA=
 github.com/domonda/go-pretty v0.0.0-20200617111510-7c4cfaba7487 h1:yQtp1Zegz7ZBB1TFwTeccyihpQQsKZzUAH8kgFyMxrU=
 github.com/domonda/go-pretty v0.0.0-20200617111510-7c4cfaba7487/go.mod h1:zUVOQL+81aMK+Ye3kS7eDsk/aWnteWRSJ5fZWHdBWjc=
 github.com/domonda/go-pretty v0.0.0-20200619103059-00cbf13fa99b h1:2bol/a4N7EK3lS6cJjKUdDS9kTajx3MYsbqioc6elXE=
@@ -63,6 +65,8 @@ github.com/domonda/go-types v0.0.0-20200730145649-cbb63f839594 h1:IzdD+GE/exoPbb
 github.com/domonda/go-types v0.0.0-20200730145649-cbb63f839594/go.mod h1:cVAD1OcEuytU4/mE9gA+SbOQWLoSGLbAf/fdOgNBCeo=
 github.com/domonda/go-types v0.0.0-20200909160145-4767dbad3c07 h1:0akx7DqpLYYpcLO51xQh5mC0fYpp3eeNzSxJ4OsDHaw=
 github.com/domonda/go-types v0.0.0-20200909160145-4767dbad3c07/go.mod h1:5vLNdiYj6InOxFYYnUZqhPw8Oa2QTexffWNbLcxTXKc=
+github.com/domonda/go-types v0.0.0-20200924083638-39ebc21394cd h1:Hx3s3wQH+BLVdQHsO4gKlixlilJo41qOsSGtjsKzhKs=
+github.com/domonda/go-types v0.0.0-20200924083638-39ebc21394cd/go.mod h1:wz+6FtLIKMJf6AmWPqEvrts+/6Orehd2Q2PGSCgIhGA=
 github.com/domonda/go-wraperr v0.0.0-20191218095026-c132bf32bd96 h1:qEeg5dpOQ+A+Rn1iocEjqDSTwVXmy0AuoyGSOG1vMcU=
 github.com/domonda/go-wraperr v0.0.0-20191218095026-c132bf32bd96/go.mod h1:+StTOV14t8kZSKmDG8CfcXEBKTocUqZ9x8zuJHnXgII=
 github.com/domonda/go-wraperr v0.0.0-20200414143540-485fd6d06d5d h1:/ZtNBy3GEmWBVMZX0CvBPn/8S223Z9U6TZzQlgrrGpc=
@@ -307,6 +311,7 @@ golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae h1:Ih9Yo4hSPImZOpfGuA4bR/ORKTAbhZo2AbWNRCnevdo=
 golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200817155316-9781c653f443/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20200923182605-d9f96fdee20d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.2 h1:tW2bmiBqwgJj/UpqtC8EpXEZVYOwU0yG4iWbprSVAcs=
 golang.org/x/text v0.3.2/go.mod h1:bEr9sfX3Q8Zfm5fL9x+3itogRgK3+ptLWKqgva+5dAk=
