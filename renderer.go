@@ -59,7 +59,7 @@ func RenderTo(writer io.Writer, renderer Renderer, structSlice interface{}, rend
 	return err
 }
 
-func RenderBytes(writer io.Writer, renderer Renderer, structSlice interface{}, renderTitleRow bool, columnMapper ColumnMapper) ([]byte, error) {
+func RenderBytes(renderer Renderer, structSlice interface{}, renderTitleRow bool, columnMapper ColumnMapper) ([]byte, error) {
 	err := Render(renderer, structSlice, renderTitleRow, columnMapper)
 	if err != nil {
 		return nil, err
