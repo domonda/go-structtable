@@ -51,6 +51,30 @@ var testRows = map[string][]string{
 		`E350`,
 		`Super, luxurious truck`,
 	},
+	`"SEP=|"` + "\n" + `"A"|"B"|"C"`: {
+		"|",
+		`A`,
+		`B`,
+		`C`,
+	},
+	`SEP=|` + "\r\n" + `A|B|C`: {
+		"|",
+		`A`,
+		`B`,
+		`C`,
+	},
+	`"sep=,"` + "\n" + `"A","B","C"`: {
+		",",
+		`A`,
+		`B`,
+		`C`,
+	},
+	`sep=;` + "\r\n" + `A;B;C`: {
+		";",
+		`A`,
+		`B`,
+		`C`,
+	},
 	`1997,Ford,E350,"Super, ""luxurious"" truck"`: {
 		",",
 		`1997`,

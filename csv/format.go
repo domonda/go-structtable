@@ -1,13 +1,31 @@
 package csv
 
+import "github.com/domonda/go-errs"
+
 type Format struct {
 	Encoding  string `json:"encoding"`
 	Separator string `json:"separator"`
 	Newline   string `json:"newline"`
 }
 
-func (f *Format) Valid() bool {
-	return f != nil && f.Encoding != "" && f.Separator != "" && f.Newline != ""
+// Validate returns an error in case of an invalid Format.
+// Can be called on nil receiver.
+func (f *Format) Validate() error {
+	switch {
+	case f == nil:
+		return errs.New("<nil> csv.Format")
+	case f.Encoding == "":
+		return errs.New("missing csv.Format.Encoding")
+	case f.Separator == "":
+		return errs.New("missing csv.Format.Separator")
+	case len(f.Separator) > 1:
+		return errs.Errorf("invalid csv.Format.Separator: %q", f.Separator)
+	case f.Newline == "":
+		return errs.New("missing csv.Format.Newline")
+	case f.Newline != "\n" && f.Newline != "\n\r" && f.Newline != "\r\n":
+		return errs.Errorf("invalid csv.Format.Newline: %q", f.Newline)
+	}
+	return nil
 }
 
 type FormatDetectionConfig struct {

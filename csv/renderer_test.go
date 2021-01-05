@@ -23,7 +23,7 @@ func Test_RenderCSV(t *testing.T) {
 	// fmt.Print(string(result))
 	// t.Fail()
 
-	const expectedCSV = `Bool;String;[]byte string;Int;IntPtr;Uint16;Float;Currency;MoneyAmount;CurrencyAmount;Time;TimePtr;Duration;Date
+	const expectedCSV = `Bool;String;[]byte string;Int;Int Ptr;Uint16;Float;Currency;Money Amount;Currency Amount;Time;Time Ptr;Duration;Date
 false;String 0;Bytes 0;0;0;0;604.6602879796196;;94,050.91;66,456.01;2012-12-12T12:12:12+01:00;2012-12-12T12:12:12+01:00;59m1s;2012-12-12
 true;String 1;Bytes 1;1;;1;437.7141871869802;EUR;42,463.75;EUR 68,682.31;2012-12-12T12:12:12+01:00;;1h59m1s;
 false;String 2;Bytes 2;2;2;2;65.63701921747622;USD;15,651.93;USD 9,696.95;2012-12-12T12:12:12+01:00;2012-12-12T12:12:12+01:00;2h59m1s;2012-12-12

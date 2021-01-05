@@ -37,7 +37,12 @@ func ParseStringsDetectFormat(data []byte, config *FormatDetectionConfig) (rows 
 func ParseStringsWithFormat(data []byte, format *Format) (rows [][]string, err error) {
 	defer errs.WrapWithFuncParams(&err, data, format)
 
-	if format.Encoding != "" && format.Encoding != "UTF-8" {
+	err = format.Validate()
+	if err != nil {
+		return nil, err
+	}
+
+	if format.Encoding != "UTF-8" {
 		enc, err := charset.GetEncoding(format.Encoding)
 		if err != nil {
 			return nil, err
@@ -49,6 +54,15 @@ func ParseStringsWithFormat(data []byte, format *Format) (rows [][]string, err e
 	}
 
 	lines := bytes.Split(data, []byte(format.Newline))
+	if len(lines) > 0 {
+		if headerSep := parseSepHeaderLine(lines[0]); headerSep != "" {
+			if headerSep != format.Separator {
+				return nil, errs.Errorf("separator '%s' in header line is different from format.Separator '%s'", headerSep, format.Separator)
+			}
+			lines = lines[1:]
+		}
+	}
+
 	return readLines(lines, []byte(format.Separator), "\n")
 }
 
@@ -101,6 +115,13 @@ func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (form
 	// Detect separator
 
 	lines = bytes.Split(data, []byte(format.Newline))
+
+	if len(lines) > 0 {
+		format.Separator = parseSepHeaderLine(lines[0])
+		if format.Separator != "" {
+			return format, lines[1:], nil
+		}
+	}
 
 	type sepCounts struct {
 		commas     int
@@ -215,6 +236,24 @@ func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (form
 	// }
 
 	return format, lines, nil
+}
+
+// parseSepHeaderLine parses "sep=," or "SEP=," like header lines
+// and returns the separator
+func parseSepHeaderLine(line []byte) (sep string) {
+	if len(line) < 5 {
+		return ""
+	}
+	if line[0] == '"' && line[len(line)-1] == '"' {
+		line = line[1 : len(line)-1]
+	}
+	if len(line) != 5 {
+		return ""
+	}
+	if !bytes.HasPrefix(line, []byte("sep=")) && !bytes.HasPrefix(line, []byte("SEP=")) {
+		return ""
+	}
+	return string(line[4:5])
 }
 
 func readLines(lines [][]byte, separator []byte, newlineReplacement string) (rows [][]string, err error) {
