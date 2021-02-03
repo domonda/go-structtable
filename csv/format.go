@@ -45,6 +45,7 @@ func NewFormatDetectionConfig() *FormatDetectionConfig {
 			"ä",
 			"ö",
 			"ü",
+			"ß",
 			"Ä",
 			"Ö",
 			"Ü",
