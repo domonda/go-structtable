@@ -286,6 +286,10 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 				// Remove outermost quotes
 				field = field[1 : len(field)-1]
 
+			case leftQuotes == 0 && rightQuotes >= 1:
+				// Field begins without a quote but ends with at least one.
+				// This is field internal quoting, no special handling needed
+
 			case leftQuotes >= 1 && rightQuotes == 0:
 				// Field begins with quote but does not end with one
 

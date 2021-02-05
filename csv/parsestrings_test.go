@@ -211,6 +211,13 @@ var testRows = map[string][]string{
 		"0-9x9-05",
 		"ATx",
 	},
+	`300150;GH "Zum Ganster";;`: {
+		";", // separator
+		`300150`,
+		`GH "Zum Ganster"`,
+		``,
+		``,
+	},
 }
 
 func TestParseStrings(t *testing.T) {
