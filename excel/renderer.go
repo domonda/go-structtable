@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strings"
 	"time"
 
 	xlsx "github.com/tealeg/xlsx/v2"
@@ -72,7 +73,7 @@ func NewRenderer(sheetName string) (*Renderer, error) {
 
 	excel.file.Date1904 = true
 
-	err := excel.AddSheet(sheetName)
+	err := excel.AddSheet(sanitizeSheetName(sheetName))
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +82,7 @@ func NewRenderer(sheetName string) (*Renderer, error) {
 }
 
 func (excel *Renderer) AddSheet(name string) error {
-	newSheet, err := excel.file.AddSheet(name)
+	newSheet, err := excel.file.AddSheet(sanitizeSheetName(name))
 	if err != nil {
 		return err
 	}
@@ -277,4 +278,30 @@ func writeMoneyCurrencyAmountExcelCell(cell *xlsx.Cell, val reflect.Value, confi
 	format := fmt.Sprintf("#,##0.00 [$%[1]s];-#,##0.00 [$%[1]s]", ca.Currency)
 	cell.SetFloatWithFormat(float64(ca.Amount), format)
 	return nil
+}
+
+func sanitizeSheetName(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "UNNAMED"
+	}
+	b := strings.Builder{}
+	b.Grow(len(name))
+	runeCount := 0
+	for _, r := range name {
+		if runeCount == 30 {
+			// Only 31 runes allowed, write ellipsis as 31st and last rune
+			b.WriteRune('…')
+			break
+		}
+		switch r {
+		case '\\', '/', '?', '*', '[', ']':
+			// Disallowed characters, write placeholder
+			b.WriteByte('_')
+		default:
+			b.WriteRune(r)
+		}
+		runeCount++
+	}
+	return b.String()
 }

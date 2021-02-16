@@ -4,11 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	fs "github.com/ungerik/go-fs"
-
 	"github.com/domonda/go-structtable"
 	"github.com/domonda/go-structtable/test"
+	"github.com/stretchr/testify/assert"
+	fs "github.com/ungerik/go-fs"
 )
 
 func Test_RenderExcel(t *testing.T) {
@@ -27,4 +26,23 @@ func Test_RenderExcel(t *testing.T) {
 	assert.True(t, outputFile.Exists(), "WriteFile")
 
 	// t.Log("Written file:", outputFile)
+}
+
+func Test_sanitizeSheetName(t *testing.T) {
+	tests := []struct {
+		name string
+		want string
+	}{
+		{name: "", want: "UNNAMED"},
+		{name: " ", want: "UNNAMED"},
+		{name: "*[X]*", want: "__X__"},
+		{name: " 123456789*123456789\\123456789/123456789 ", want: "123456789_123456789_123456789_…"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := sanitizeSheetName(tt.name); got != tt.want {
+				t.Errorf("sanitizeSheetName() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
