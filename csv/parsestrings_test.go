@@ -218,6 +218,18 @@ var testRows = map[string][]string{
 		``,
 		``,
 	},
+	`"one","two,","three"`: {
+		",", // separator
+		"one",
+		"two,",
+		"three",
+	},
+	`"one";"two;";"three"`: {
+		";", // separator
+		"one",
+		"two;",
+		"three",
+	},
 }
 
 func TestParseStrings(t *testing.T) {
