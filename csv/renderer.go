@@ -8,7 +8,7 @@ import (
 
 	"github.com/domonda/go-structtable"
 	"github.com/domonda/go-types/charset"
-	"github.com/domonda/go-types/txtfmt"
+	"github.com/domonda/go-types/strfmt"
 )
 
 var (
@@ -18,21 +18,63 @@ var (
 
 type Renderer struct {
 	*structtable.TextRenderer
-	headerComment []byte
-	delimiter     []byte
-	quoteFields   bool
-	newLine       []byte
+
+	headerComment  []byte
+	delimiter      []byte
+	quoteAllFields bool
+	// quoteTextFields  bool
+	quoteEmptyFields bool
+	newLine          []byte
 }
 
-func NewRenderer(config *txtfmt.FormatConfig) *Renderer {
+func NewRenderer(config *strfmt.FormatConfig) *Renderer {
 	csv := &Renderer{
-		headerComment: nil,
-		delimiter:     []byte{';'},
-		quoteFields:   false,
-		newLine:       []byte{'\r', '\n'},
+		headerComment:  nil,
+		delimiter:      []byte{';'},
+		quoteAllFields: false,
+		// quoteTextFields:  false,
+		quoteEmptyFields: false,
+		newLine:          []byte{'\r', '\n'},
 	}
 	csv.TextRenderer = structtable.NewTextRenderer(csv, config)
 	return csv
+}
+
+func (csv *Renderer) WithDelimiter(delimiter string) *Renderer {
+	err := csv.SetDelimiter(delimiter)
+	if err != nil {
+		panic("err")
+	}
+	return csv
+}
+
+func (csv *Renderer) WithHeaderComment(headerSuffix string) *Renderer {
+	if headerSuffix == "" {
+		csv.headerComment = nil
+	} else {
+		csv.headerComment = []byte(headerSuffix)
+	}
+	return csv
+}
+
+func (csv *Renderer) WithQuoteAllFields(quote bool) *Renderer {
+	csv.quoteAllFields = quote
+	return csv
+}
+
+// func (csv *Renderer) WithQuoteTextFields(quote bool) *Renderer {
+// 	csv.quoteTextFields = quote
+// 	return csv
+// }
+
+func (csv *Renderer) WithQuoteEmptyFields(quote bool) *Renderer {
+	csv.quoteEmptyFields = quote
+	return csv
+}
+
+func (csv *Renderer) RenderBeginTableText(writer io.Writer) error {
+	_, err := writer.Write([]byte(charset.BOMUTF8))
+	return err
 }
 
 func (csv *Renderer) SetDelimiter(delimiter string) error {
@@ -42,23 +84,6 @@ func (csv *Renderer) SetDelimiter(delimiter string) error {
 
 	csv.delimiter = []byte(delimiter)
 	return nil
-}
-
-func (csv *Renderer) SetHeaderComment(headerSuffix string) {
-	if headerSuffix == "" {
-		csv.headerComment = nil
-	} else {
-		csv.headerComment = []byte(headerSuffix)
-	}
-}
-
-func (csv *Renderer) SetQuoteFields(quoteFields bool) {
-	csv.quoteFields = quoteFields
-}
-
-func (csv *Renderer) RenderBeginTableText(writer io.Writer) error {
-	_, err := writer.Write([]byte(charset.BOMUTF8))
-	return err
 }
 
 func (csv *Renderer) RenderHeaderRowText(writer io.Writer, columnTitles []string) error {
@@ -80,7 +105,7 @@ func (csv *Renderer) RenderRowText(writer io.Writer, fields []string) error {
 			}
 		}
 
-		mustQuote := csv.quoteFields || strings.ContainsAny(field, "\"\n"+string(csv.delimiter))
+		mustQuote := csv.quoteAllFields || (csv.quoteEmptyFields && field == "") || strings.ContainsAny(field, "\"\n"+string(csv.delimiter))
 
 		if mustQuote {
 			_, err := writer.Write(doubleQuote)

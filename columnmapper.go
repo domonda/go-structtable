@@ -58,11 +58,17 @@ func (t ColumnTitles) ColumnTitlesAndRowReflector(structType reflect.Type) (titl
 	return t, RowReflectorFunc(StructFieldValues)
 }
 
-// NoColumnTitles implements ColumnMapper by returning nil as column titles
+// NoColumnTitles returns a ColumnMapper that returns nil as column titles
 // and the StructFieldValues function of this package as RowReflector.
-type NoColumnTitles struct{}
+func NoColumnTitles() ColumnMapper {
+	return noColumnTitles{}
+}
 
-func (NoColumnTitles) ColumnTitlesAndRowReflector(structType reflect.Type) (titles []string, rowReflector RowReflector) {
+// noColumnTitles implements ColumnMapper by returning nil as column titles
+// and the StructFieldValues function of this package as RowReflector.
+type noColumnTitles struct{}
+
+func (noColumnTitles) ColumnTitlesAndRowReflector(structType reflect.Type) (titles []string, rowReflector RowReflector) {
 	return nil, RowReflectorFunc(StructFieldValues)
 }
 

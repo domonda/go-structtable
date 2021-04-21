@@ -6,8 +6,8 @@ import (
 
 	"github.com/domonda/go-types/bank"
 	"github.com/domonda/go-types/date"
+	"github.com/domonda/go-types/float"
 	"github.com/domonda/go-types/money"
-	"github.com/domonda/go-types/strfmt"
 )
 
 type DataType string
@@ -70,7 +70,7 @@ func StringDataTypes(str string) []DataType {
 	if _, err := strconv.ParseInt(str, 10, 64); err == nil {
 		types = append(types, DataTypeInt)
 	}
-	if _, err := strfmt.ParseFloat(str); err == nil {
+	if _, err := float.Parse(str); err == nil {
 		types = append(types, DataTypeFloat)
 	}
 	if _, err := money.ParseAmount(str); err == nil {

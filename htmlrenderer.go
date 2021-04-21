@@ -8,9 +8,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/domonda/go-types/txtfmt"
-	fs "github.com/ungerik/go-fs"
-	"github.com/ungerik/go-reflection"
+	"github.com/ungerik/go-fs"
+
+	"github.com/domonda/go-types/strfmt"
 )
 
 // HTMLFormatRenderer is the renderer for the HTML format.
@@ -37,12 +37,12 @@ type HTMLTableConfig struct {
 type HTMLRenderer struct {
 	format      HTMLFormatRenderer
 	TableConfig *HTMLTableConfig
-	config      *txtfmt.FormatConfig
+	txtConfig   *strfmt.FormatConfig
 	buf         bytes.Buffer
 }
 
-func NewHTMLRenderer(format HTMLFormatRenderer, TableConfig *HTMLTableConfig, config *txtfmt.FormatConfig) *HTMLRenderer {
-	return &HTMLRenderer{format: format, TableConfig: TableConfig, config: config}
+func NewHTMLRenderer(format HTMLFormatRenderer, TableConfig *HTMLTableConfig, config *strfmt.FormatConfig) *HTMLRenderer {
+	return &HTMLRenderer{format: format, TableConfig: TableConfig, txtConfig: config}
 }
 
 func (htm *HTMLRenderer) RenderHeaderRow(columnTitles []string) error {
@@ -104,11 +104,14 @@ func (htm *HTMLRenderer) RenderRow(columnValues []reflect.Value) error {
 	}
 
 	for _, columnValue := range columnValues {
-		str := txtfmt.FormatValue(columnValue, htm.config)
+		str := strfmt.FormatValue(columnValue, htm.txtConfig)
 
 		// if the value does not have its own formatter, escape the resulting string
-		_, derefType := reflection.DerefValueAndType(columnValue)
-		if _, ok := htm.config.TypeFormatters[derefType]; !ok {
+		derefType := columnValue.Type()
+		for derefType.Kind() == reflect.Ptr {
+			derefType = derefType.Elem()
+		}
+		if htm.txtConfig.TypeFormatters[derefType] == nil {
 			str = html.EscapeString(str)
 		}
 

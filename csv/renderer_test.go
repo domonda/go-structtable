@@ -9,11 +9,11 @@ import (
 	"github.com/domonda/go-structtable"
 	"github.com/domonda/go-structtable/test"
 	"github.com/domonda/go-types/charset"
-	"github.com/domonda/go-types/txtfmt"
+	"github.com/domonda/go-types/strfmt"
 )
 
 func Test_RenderCSV(t *testing.T) {
-	renderer := NewRenderer(txtfmt.NewFormatConfig())
+	renderer := NewRenderer(strfmt.NewFormatConfig())
 	err := structtable.Render(renderer, test.NewTable(5), true, structtable.DefaultReflectColumnTitles)
 	assert.NoError(t, err, "WriteFile")
 

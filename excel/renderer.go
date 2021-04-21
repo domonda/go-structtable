@@ -10,7 +10,6 @@ import (
 
 	xlsx "github.com/tealeg/xlsx/v2"
 	fs "github.com/ungerik/go-fs"
-	reflection "github.com/ungerik/go-reflection"
 
 	"github.com/domonda/go-types/date"
 	"github.com/domonda/go-types/money"
@@ -110,13 +109,36 @@ func (excel *Renderer) RenderHeaderRow(columnTitles []string) error {
 	return nil
 }
 
+// ValueOf differs from reflect.ValueOf in that it returns the argument val
+// casted to reflect.Value if val is alread a reflect.Value.
+// Else the standard result of reflect.ValueOf(val) will be returned.
+func ValueOf(val interface{}) reflect.Value {
+	v, ok := val.(reflect.Value)
+	if ok {
+		return v
+	}
+	return reflect.ValueOf(val)
+}
+
+func DerefValueAndType(val interface{}) (reflect.Value, reflect.Type) {
+	v := ValueOf(val)
+	for v.Kind() == reflect.Ptr && !v.IsNil() {
+		v = v.Elem()
+	}
+	return v, v.Type()
+}
+
 func (excel *Renderer) RenderRow(columnValues []reflect.Value) error {
 	row := excel.currentSheet.AddRow()
 	for _, val := range columnValues {
 		cell := row.AddCell()
 		cell.SetStyle(excel.cellStyle)
 
-		derefVal, derefType := reflection.DerefValueAndType(val)
+		derefVal := val
+		for derefVal.Kind() == reflect.Ptr && !derefVal.IsNil() {
+			derefVal = derefVal.Elem()
+		}
+		derefType := derefVal.Type()
 
 		if w, ok := excel.TypeCellWriters[derefType]; ok && derefVal.IsValid() {
 			// derefVal.IsValid() returns false for dereferenced nil pointer

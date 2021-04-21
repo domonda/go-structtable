@@ -5,7 +5,7 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/domonda/go-types/txtfmt"
+	"github.com/domonda/go-types/strfmt"
 	fs "github.com/ungerik/go-fs"
 )
 
@@ -22,12 +22,12 @@ type TextFormatRenderer interface {
 // for a specific text based table format.
 type TextRenderer struct {
 	format       TextFormatRenderer
-	config       *txtfmt.FormatConfig
+	config       *strfmt.FormatConfig
 	buf          bytes.Buffer
 	beginWritten bool
 }
 
-func NewTextRenderer(format TextFormatRenderer, config *txtfmt.FormatConfig) *TextRenderer {
+func NewTextRenderer(format TextFormatRenderer, config *strfmt.FormatConfig) *TextRenderer {
 	tw := &TextRenderer{
 		format: format,
 		config: config,
@@ -70,7 +70,7 @@ func (txt *TextRenderer) RenderRow(columnValues []reflect.Value) error {
 	}
 	fields := make([]string, len(columnValues))
 	for i, val := range columnValues {
-		fields[i] = txtfmt.FormatValue(val, txt.config)
+		fields[i] = strfmt.FormatValue(val, txt.config)
 	}
 	return txt.format.RenderRowText(&txt.buf, fields)
 }
