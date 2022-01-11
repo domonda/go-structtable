@@ -27,8 +27,10 @@ type Struct struct {
 	Date           date.Date
 }
 
+// NewTable returns a new test table.
 func NewTable(numRows int) []Struct {
 	rows := make([]Struct, numRows)
+	//#nosec G404 -- weak random numbers OK
 	for i := range rows {
 		rows[i].Bool = i%2 > 0
 		rows[i].String = fmt.Sprintf("String %d", i)

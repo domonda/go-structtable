@@ -15,6 +15,7 @@ type Renderer struct {
 
 func NewRenderer(caption string, config *strfmt.FormatConfig) *Renderer {
 	r := &Renderer{}
+	//#nosec G404 -- weak random number OK
 	table := &structtable.HTMLTableConfig{
 		Caption:        caption,
 		CaptionClass:   fmt.Sprintf("c%d", rand.Uint32()),
