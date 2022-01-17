@@ -318,3 +318,24 @@ func TestCountQuotes(t *testing.T) {
 		})
 	}
 }
+
+func Test_parseSepHeaderLine(t *testing.T) {
+	tests := []struct {
+		line    string
+		wantSep string
+	}{
+		{line: `SEP=,`, wantSep: ","},
+		{line: `"SEP=,"`, wantSep: ","},
+		{line: `SEP=;`, wantSep: ";"},
+		{line: `"SEP=;"`, wantSep: ";"},
+		{line: `sep=,`, wantSep: ","},
+		{line: `"sep=,"`, wantSep: ","},
+	}
+	for _, tt := range tests {
+		t.Run(tt.line, func(t *testing.T) {
+			if gotSep := parseSepHeaderLine([]byte(tt.line)); gotSep != tt.wantSep {
+				t.Errorf("parseSepHeaderLine() = %v, want %v", gotSep, tt.wantSep)
+			}
+		})
+	}
+}
