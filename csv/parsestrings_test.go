@@ -224,7 +224,7 @@ func TestParseStrings(t *testing.T) {
 	for csvRow, ref := range testRows {
 		t.Run(csvRow, func(t *testing.T) {
 			refSeparator, refFields := ref[0], ref[1:]
-			rows, format, err := ParseStringsDetectFormat([]byte(csvRow), NewFormatDetectionConfig())
+			rows, format, err := ParseStringsDetectFormat([]byte(csvRow), nil)
 			assert.NoError(t, err, "csv.Read")
 			assert.NotNil(t, format, "returned Format")
 			assert.Equal(t, "UTF-8", format.Encoding, "UTF-8 encoding expected")

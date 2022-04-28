@@ -25,6 +25,10 @@ func FileParseStringsDetectFormat(csvFile fs.FileReader, config *FormatDetection
 func ParseStringsDetectFormat(data []byte, config *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
 	defer errs.WrapWithFuncParams(&err, data, config)
 
+	if config == nil {
+		config = NewFormatDetectionConfig()
+	}
+
 	format, lines, err := detectFormatAndSplitLines(data, config)
 	if err != nil {
 		return nil, format, err
