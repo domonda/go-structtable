@@ -1,6 +1,7 @@
 package structtable
 
 import (
+	"context"
 	"io"
 	"reflect"
 
@@ -76,5 +77,5 @@ func RenderFile(file fs.File, renderer Renderer, structSlice interface{}, render
 	if err != nil {
 		return err
 	}
-	return file.WriteAll(data)
+	return file.WriteAll(context.Background(), data)
 }
