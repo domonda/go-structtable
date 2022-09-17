@@ -2,6 +2,7 @@ package csv
 
 import (
 	"bytes"
+	"context"
 
 	"github.com/ungerik/go-fs"
 
@@ -10,10 +11,10 @@ import (
 )
 
 // FileParseStringsDetectFormat returns a slice of strings per row with the format detected via the FormatDetectionConfig.
-func FileParseStringsDetectFormat(csvFile fs.FileReader, config *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
-	defer errs.WrapWithFuncParams(&err, csvFile, config)
+func FileParseStringsDetectFormat(ctx context.Context, csvFile fs.FileReader, config *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
+	defer errs.WrapWithFuncParams(&err, ctx, csvFile, config)
 
-	data, err := csvFile.ReadAll()
+	data, err := csvFile.ReadAll(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
