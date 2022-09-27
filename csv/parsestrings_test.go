@@ -1,6 +1,7 @@
 package csv
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -258,10 +259,10 @@ func TestParsePriavteStrings(t *testing.T) {
 		assert.True(t, jsonFile.Exists())
 
 		var expected Expected
-		err := jsonFile.ReadJSON(&expected)
+		err := jsonFile.ReadJSON(context.Background(), &expected)
 		assert.NoError(t, err, "ReadJSON")
 
-		rows, format, err := FileParseStringsDetectFormat(csvFile, NewFormatDetectionConfig())
+		rows, format, err := FileParseStringsDetectFormat(context.Background(), csvFile, NewFormatDetectionConfig())
 		assert.NoError(t, err, "FileParseStringsDetectFormat")
 		rows = RemoveEmptyRows(rows)
 
