@@ -99,21 +99,27 @@ func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (form
 	///////////////////////////////////////////////////////////////////////////
 	// Detect line endings
 
-	var (
-		numLinesR  = bytes.Count(data, []byte{'\r'})
-		numLinesN  = bytes.Count(data, []byte{'\n'})
-		numLinesRN = bytes.Count(data, []byte{'\r', '\n'})
-	)
+	// var (
+	// 	numLinesR  = bytes.Count(data, []byte{'\r'})
+	// 	numLinesN  = bytes.Count(data, []byte{'\n'})
+	// 	numLinesRN = bytes.Count(data, []byte{'\r', '\n'})
+	// )
+	// // fmt.Println("n:", numLinesN, "rn:", numLinesRN, "r:", numLinesR)
+	// switch {
+	// case numLinesR > numLinesN:
+	// 	format.Newline = "\r"
+	// case numLinesN > numLinesRN:
+	// 	format.Newline = "\n"
+	// default:
+	// 	format.Newline = "\r\n"
+	// }
 
-	// fmt.Println("n:", numLinesN, "rn:", numLinesRN, "r:", numLinesR)
-
-	switch {
-	case numLinesR > numLinesN:
-		format.Newline = "\r"
-	case numLinesN > numLinesRN:
-		format.Newline = "\n"
-	default:
+	// Simple rule: if there are \r\n line endings
+	// then take those because that's the standard
+	if bytes.Contains(data, []byte{'\r', '\n'}) {
 		format.Newline = "\r\n"
+	} else {
+		format.Newline = "\n"
 	}
 
 	///////////////////////////////////////////////////////////////////////////
