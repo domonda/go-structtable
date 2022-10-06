@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/ungerik/go-fs"
 )
 
@@ -245,34 +246,36 @@ func TestParseStrings(t *testing.T) {
 
 }
 
-func TestParsePriavteStrings(t *testing.T) {
+func TestParsePrivateStrings(t *testing.T) {
 	privateTestDataDir := fs.File("../../TestDocuments/CSV")
-	assert.True(t, privateTestDataDir.IsDir(), "privateTestDataDir exists")
+	require.True(t, privateTestDataDir.IsDir(), "privateTestDataDir exists")
 
 	type Expected struct {
 		Format *Format
 		Rows   [][]string
 	}
 
-	testCSV := func(csvFile fs.File) error {
-		jsonFile := csvFile.TrimExt() + ".json"
-		assert.True(t, jsonFile.Exists())
+	privateTestDataDir.ListDir(
+		func(jsonFile fs.File) error {
+			csvFile := jsonFile.TrimExt() + ".csv"
+			t.Run(csvFile.Name(), func(t *testing.T) {
+				require.True(t, csvFile.Exists())
 
-		var expected Expected
-		err := jsonFile.ReadJSON(context.Background(), &expected)
-		assert.NoError(t, err, "ReadJSON")
+				var expected Expected
+				err := jsonFile.ReadJSON(context.Background(), &expected)
+				assert.NoError(t, err, "ReadJSON")
 
-		rows, format, err := FileParseStringsDetectFormat(context.Background(), csvFile, NewFormatDetectionConfig())
-		assert.NoError(t, err, "FileParseStringsDetectFormat")
-		rows = RemoveEmptyRows(rows)
+				rows, format, err := FileParseStringsDetectFormat(context.Background(), csvFile, NewFormatDetectionConfig())
+				assert.NoError(t, err, "FileParseStringsDetectFormat")
+				rows = RemoveEmptyRows(rows)
 
-		assert.Equal(t, expected.Format, format, "detected format")
-		assert.Equalf(t, expected.Rows, rows, "rows from %s equal to %s", jsonFile, csvFile)
-
-		return nil
-	}
-
-	privateTestDataDir.ListDir(testCSV, "*.csv")
+				assert.Equal(t, expected.Format, format, "detected format")
+				assert.Equalf(t, expected.Rows, rows, "rows from %s equal to %s", jsonFile, csvFile)
+			})
+			return nil
+		},
+		"*.json",
+	)
 }
 
 func TestCountQuotes(t *testing.T) {
