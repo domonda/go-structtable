@@ -58,6 +58,8 @@ func ParseStringsWithFormat(data []byte, format *Format) (rows [][]string, err e
 		}
 	}
 
+	data = sanitizeCharacters(data)
+
 	lines := bytes.Split(data, []byte(format.Newline))
 	if len(lines) > 0 {
 		if headerSep := parseSepHeaderLine(lines[0]); headerSep != "" {
@@ -95,6 +97,8 @@ func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (form
 	if format.Encoding == "" {
 		format.Encoding = "UTF-8"
 	}
+
+	data = sanitizeCharacters(data)
 
 	///////////////////////////////////////////////////////////////////////////
 	// Detect line endings
@@ -440,4 +444,9 @@ func countQuotesLeftRight(str []byte) (left, right int) {
 	}
 
 	return left, right
+}
+
+func sanitizeCharacters(str []byte) []byte {
+	// \u00a0 is No-Break Space (NBSP)
+	return bytes.ReplaceAll(str, []byte{'\u00a0'}, []byte{' '})
 }
