@@ -248,7 +248,9 @@ func TestParseStrings(t *testing.T) {
 
 func TestParsePrivateStrings(t *testing.T) {
 	privateTestDataDir := fs.File("../../TestDocuments/CSV")
-	require.True(t, privateTestDataDir.IsDir(), "privateTestDataDir exists")
+	if !assert.True(t, privateTestDataDir.IsDir(), "privateTestDataDir exists. To get it run: git clone git@github.com:domonda/TestDocuments --depth=1") {
+		return
+	}
 
 	type Expected struct {
 		Format *Format
