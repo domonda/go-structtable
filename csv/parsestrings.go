@@ -14,7 +14,7 @@ import (
 func FileParseStringsDetectFormat(ctx context.Context, csvFile fs.FileReader, config *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
 	defer errs.WrapWithFuncParams(&err, ctx, csvFile, config)
 
-	data, err := csvFile.ReadAll(ctx)
+	data, err := csvFile.ReadAllContext(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
