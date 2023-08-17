@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	xlsx "github.com/tealeg/xlsx/v2"
+	xlsx "github.com/tealeg/xlsx/v3"
 	fs "github.com/ungerik/go-fs"
 
 	"github.com/domonda/go-types/date"

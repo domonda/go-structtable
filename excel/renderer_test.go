@@ -4,14 +4,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/ungerik/go-fs"
+
 	"github.com/domonda/go-structtable"
 	"github.com/domonda/go-structtable/test"
-	"github.com/stretchr/testify/assert"
-	fs "github.com/ungerik/go-fs"
 )
 
 func Test_RenderExcel(t *testing.T) {
-	outputFile := fs.TempDir().Joinf("Test_%s.xlsx", time.Now())
+	outputFile := fs.File(".").Joinf("Test_%s.xlsx", time.Now().Format("2006-01-02_15-04-05.999"))
+	t.Cleanup(func() {
+		_ = outputFile.Remove()
+	})
 
 	renderer, err := NewRenderer("Sheet 1")
 	assert.NoError(t, err, "Sheet 1")
@@ -25,7 +29,7 @@ func Test_RenderExcel(t *testing.T) {
 	renderer.WriteResultFile(outputFile)
 	assert.True(t, outputFile.Exists(), "WriteFile")
 
-	// t.Log("Written file:", outputFile)
+	t.Log("Written file:", outputFile)
 }
 
 func Test_sanitizeSheetName(t *testing.T) {

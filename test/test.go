@@ -29,6 +29,7 @@ type Struct struct {
 
 // NewTable returns a new test table.
 func NewTable(numRows int) []Struct {
+	rand := rand.New(rand.NewSource(1))
 	rows := make([]Struct, numRows)
 	//#nosec G404 -- weak random numbers OK
 	for i := range rows {
