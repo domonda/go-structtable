@@ -40,6 +40,12 @@ func NewRenderer(config *strfmt.FormatConfig) *Renderer {
 	return csv
 }
 
+func (csv *Renderer) WithFormat(format *Format) *Renderer {
+	csv.delimiter = []byte(format.Separator)
+	csv.newLine = []byte(format.Newline)
+	return csv
+}
+
 func (csv *Renderer) WithDelimiter(delimiter string) *Renderer {
 	err := csv.SetDelimiter(delimiter)
 	if err != nil {

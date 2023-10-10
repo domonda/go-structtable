@@ -2,7 +2,6 @@ package csv
 
 import (
 	"io"
-	"io/ioutil"
 	"reflect"
 
 	"github.com/domonda/go-errs"
@@ -39,7 +38,7 @@ type Reader struct {
 func NewReader(reader io.Reader, format *Format, newlineReplacement string, modifiers ModifierList, columns []ColumnMapping, scanConfig ...*strfmt.ScanConfig) (r *Reader, err error) {
 	defer errs.WrapWithFuncParams(&err, reader, format, newlineReplacement, modifiers, columns, scanConfig)
 
-	data, err := ioutil.ReadAll(reader)
+	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +119,7 @@ func (r *Reader) ReadRow(index int, destStruct reflect.Value) error {
 // func (r *Reader) Read(reader io.Reader, structSlicePtr interface{}) (err error) {
 // 	defer errs.WrapWithFuncParams(&err, reader, structSlicePtr)
 
-// 	data, err := ioutil.ReadAll(reader)
+// 	data, err := io.ReadAll(reader)
 // 	if err != nil {
 // 		return err
 // 	}
