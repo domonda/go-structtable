@@ -82,7 +82,7 @@ func StringDataTypes(str string) []DataType {
 	if date.StringIsDate(str) {
 		types = append(types, DataTypeDate)
 	}
-	if _, ok := date.ParseTime(str); ok {
+	if _, err := date.ParseTime(str); err == nil {
 		types = append(types, DataTypeTime)
 	}
 	if bank.StringIsIBAN(str) {
