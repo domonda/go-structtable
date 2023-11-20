@@ -268,7 +268,7 @@ func TestParsePrivateStrings(t *testing.T) {
 				assert.NoError(t, err, "ReadJSON")
 
 				rows, format, err := ParseFileDetectFormat(context.Background(), csvFile, NewFormatDetectionConfig())
-				assert.NoError(t, err, "FileParseStringsDetectFormat")
+				assert.NoError(t, err, "ParseFileDetectFormat")
 				rows = RemoveEmptyRows(rows)
 
 				assert.Equal(t, expected.Format, format, "detected format")

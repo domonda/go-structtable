@@ -11,9 +11,10 @@ import (
 )
 
 // ParseDetectFormat returns a slice of strings per row with the format detected via the FormatDetectionConfig.
-func ParseDetectFormat(data []byte, config *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
-	defer errs.WrapWithFuncParams(&err, data, config)
+func ParseDetectFormat(data []byte, configOrNil *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
+	defer errs.WrapWithFuncParams(&err, data, configOrNil)
 
+	config := configOrNil
 	if config == nil {
 		config = NewFormatDetectionConfig()
 	}
@@ -28,15 +29,15 @@ func ParseDetectFormat(data []byte, config *FormatDetectionConfig) (rows [][]str
 }
 
 // ParseFileDetectFormat returns a slice of strings per row with the format detected via the FormatDetectionConfig.
-func ParseFileDetectFormat(ctx context.Context, csvFile fs.FileReader, config *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
-	defer errs.WrapWithFuncParams(&err, ctx, csvFile, config)
+func ParseFileDetectFormat(ctx context.Context, csvFile fs.FileReader, configOrNil *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
+	defer errs.WrapWithFuncParams(&err, ctx, csvFile, configOrNil)
 
 	data, err := csvFile.ReadAllContext(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return ParseDetectFormat(data, config)
+	return ParseDetectFormat(data, configOrNil)
 }
 
 func ParseWithFormat(data []byte, format *Format) (rows [][]string, err error) {
