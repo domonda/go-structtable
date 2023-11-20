@@ -43,7 +43,7 @@ func NewReader(reader io.Reader, format *Format, newlineReplacement string, modi
 		return nil, err
 	}
 
-	rows, err := ParseStringsWithFormat(data, format)
+	rows, err := ParseWithFormat(data, format)
 	if err != nil {
 		return nil, err
 	}

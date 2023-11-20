@@ -10,20 +10,8 @@ import (
 	"github.com/domonda/go-types/charset"
 )
 
-// FileParseStringsDetectFormat returns a slice of strings per row with the format detected via the FormatDetectionConfig.
-func FileParseStringsDetectFormat(ctx context.Context, csvFile fs.FileReader, config *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
-	defer errs.WrapWithFuncParams(&err, ctx, csvFile, config)
-
-	data, err := csvFile.ReadAllContext(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return ParseStringsDetectFormat(data, config)
-}
-
-// ParseStringsDetectFormat returns a slice of strings per row with the format detected via the FormatDetectionConfig.
-func ParseStringsDetectFormat(data []byte, config *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
+// ParseDetectFormat returns a slice of strings per row with the format detected via the FormatDetectionConfig.
+func ParseDetectFormat(data []byte, config *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
 	defer errs.WrapWithFuncParams(&err, data, config)
 
 	if config == nil {
@@ -39,7 +27,19 @@ func ParseStringsDetectFormat(data []byte, config *FormatDetectionConfig) (rows 
 	return rows, format, err
 }
 
-func ParseStringsWithFormat(data []byte, format *Format) (rows [][]string, err error) {
+// ParseFileDetectFormat returns a slice of strings per row with the format detected via the FormatDetectionConfig.
+func ParseFileDetectFormat(ctx context.Context, csvFile fs.FileReader, config *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
+	defer errs.WrapWithFuncParams(&err, ctx, csvFile, config)
+
+	data, err := csvFile.ReadAllContext(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return ParseDetectFormat(data, config)
+}
+
+func ParseWithFormat(data []byte, format *Format) (rows [][]string, err error) {
 	defer errs.WrapWithFuncParams(&err, data, format)
 
 	err = format.Validate()
@@ -47,7 +47,9 @@ func ParseStringsWithFormat(data []byte, format *Format) (rows [][]string, err e
 		return nil, err
 	}
 
-	if format.Encoding != "UTF-8" {
+	if format.Encoding == "UTF-8" {
+		data = charset.TrimBOM(data, charset.BOMUTF8)
+	} else {
 		enc, err := charset.GetEncoding(format.Encoding)
 		if err != nil {
 			return nil, err
@@ -71,6 +73,17 @@ func ParseStringsWithFormat(data []byte, format *Format) (rows [][]string, err e
 	}
 
 	return readLines(lines, []byte(format.Separator), "\n")
+}
+
+func ParseFileWithFormat(ctx context.Context, csvFile fs.FileReader, format *Format) (rows [][]string, err error) {
+	defer errs.WrapWithFuncParams(&err, ctx, csvFile, format)
+
+	data, err := csvFile.ReadAllContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return ParseWithFormat(data, format)
 }
 
 func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (format *Format, lines [][]byte, err error) {

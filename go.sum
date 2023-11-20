@@ -5,8 +5,8 @@ github.com/domonda/go-errs v0.0.0-20230920094343-6b122da4d22f h1:ECYzMHlxXTmVwOY
 github.com/domonda/go-errs v0.0.0-20230920094343-6b122da4d22f/go.mod h1:DYkFE3rxUGhTCMmR5MpQ2NTtoCPiORdjBATGkIEeGKM=
 github.com/domonda/go-pretty v0.0.0-20230810130018-8920f571470a h1:b3a6MwwMrHR9dw6585e3Ky51T50OKuD3fRuLyh8ziEw=
 github.com/domonda/go-pretty v0.0.0-20230810130018-8920f571470a/go.mod h1:3QkM8UJdyJMeKZiIo7hYzSkQBpRS3k0gOHw4ysyEIB4=
-github.com/domonda/go-types v0.0.0-20231107131812-58434ee2d3c9 h1:bJWeszBwF11o1UG7Epa4j033nKLKiiogZ0F0v9PevQI=
-github.com/domonda/go-types v0.0.0-20231107131812-58434ee2d3c9/go.mod h1:VN3OuhrBnpf6WINBBS/MhhLSA0UK8vNm/HWwjVCGPWs=
+github.com/domonda/go-types v0.0.0-20231120112155-3673dfbdcad5 h1:urnwi7TYNFS82AbxC3LRoz34jXQPRRbIPNksCkFmGj4=
+github.com/domonda/go-types v0.0.0-20231120112155-3673dfbdcad5/go.mod h1:umVp8TN9LO4PA1rL3vW1c4DQAfXb4xB7xx/nXun0R3U=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
 github.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
 github.com/fsnotify/fsnotify v1.7.0 h1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nosvA=
@@ -43,8 +43,8 @@ github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcU
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/tealeg/xlsx/v3 v3.3.4 h1:+ekdnOtVHfCGadxXXuQv1JK9uXSweMpqICsHJ9macR4=
 github.com/tealeg/xlsx/v3 v3.3.4/go.mod h1:KV4FTFtvGy0TBlOivJLZu/YNZk6e0Qtk7eOSglWksuA=
-github.com/ungerik/go-fs v0.0.0-20231106220413-6640c23708ce h1:fPKJ8EYmx+v2CY9twF/Bn/d5C8J2Anx81MK8J7PfY+0=
-github.com/ungerik/go-fs v0.0.0-20231106220413-6640c23708ce/go.mod h1:2RzyJL3rnCsReUsiHwNticoN7CQSiro27dBJjjqLFTs=
+github.com/ungerik/go-fs v0.0.0-20231118104034-e3470c063fed h1:XpsaWcWtNCOJFSE3v7Q1Tpoi8F0eJOM4JOq6BlmjD68=
+github.com/ungerik/go-fs v0.0.0-20231118104034-e3470c063fed/go.mod h1:2RzyJL3rnCsReUsiHwNticoN7CQSiro27dBJjjqLFTs=
 github.com/ungerik/go-reflection v0.0.0-20230810134712-a63435f6bc7e h1:BPksMeVdgSD8L4yXHYSY3HpdJ/5z2Ok5lF6PxHIVgEQ=
 github.com/ungerik/go-reflection v0.0.0-20230810134712-a63435f6bc7e/go.mod h1:1Q14POg/xa/P6/hWKfnUexqUhW1X6jgw+6gG7lOne1E=
 golang.org/x/sys v0.14.0 h1:Vz7Qs629MkJkGyHxUlRHizWJRG2j8fbQKjELVSNhy7Q=

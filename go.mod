@@ -4,10 +4,10 @@ go 1.21
 
 require (
 	github.com/domonda/go-errs v0.0.0-20230920094343-6b122da4d22f
-	github.com/domonda/go-types v0.0.0-20231107131812-58434ee2d3c9
+	github.com/domonda/go-types v0.0.0-20231120112155-3673dfbdcad5
 	github.com/stretchr/testify v1.8.4
 	github.com/tealeg/xlsx/v3 v3.3.4
-	github.com/ungerik/go-fs v0.0.0-20231106220413-6640c23708ce
+	github.com/ungerik/go-fs v0.0.0-20231118104034-e3470c063fed
 )
 
 require (

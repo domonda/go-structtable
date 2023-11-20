@@ -226,7 +226,7 @@ func TestParseStrings(t *testing.T) {
 	for csvRow, ref := range testRows {
 		t.Run(csvRow, func(t *testing.T) {
 			refSeparator, refFields := ref[0], ref[1:]
-			rows, format, err := ParseStringsDetectFormat([]byte(csvRow), nil)
+			rows, format, err := ParseDetectFormat([]byte(csvRow), nil)
 			assert.NoError(t, err, "csv.Read")
 			assert.NotNil(t, format, "returned Format")
 			assert.Equal(t, "UTF-8", format.Encoding, "UTF-8 encoding expected")
@@ -267,7 +267,7 @@ func TestParsePrivateStrings(t *testing.T) {
 				err := jsonFile.ReadJSON(context.Background(), &expected)
 				assert.NoError(t, err, "ReadJSON")
 
-				rows, format, err := FileParseStringsDetectFormat(context.Background(), csvFile, NewFormatDetectionConfig())
+				rows, format, err := ParseFileDetectFormat(context.Background(), csvFile, NewFormatDetectionConfig())
 				assert.NoError(t, err, "FileParseStringsDetectFormat")
 				rows = RemoveEmptyRows(rows)
 
