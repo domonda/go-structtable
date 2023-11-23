@@ -13,6 +13,7 @@ import (
 // ParseDetectFormat returns a slice of strings per row with the format detected via the FormatDetectionConfig.
 func ParseDetectFormat(data []byte, configOrNil *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
 	defer errs.WrapWithFuncParams(&err, data, configOrNil)
+	defer errs.RecoverPanicAsError(&err)
 
 	config := configOrNil
 	if config == nil {
@@ -89,6 +90,10 @@ func ParseFileWithFormat(ctx context.Context, csvFile fs.FileReader, format *For
 
 func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (format *Format, lines [][]byte, err error) {
 	defer errs.WrapWithFuncParams(&err, data, config)
+
+	if config == nil {
+		panic("config must not be nil")
+	}
 
 	format = new(Format)
 
