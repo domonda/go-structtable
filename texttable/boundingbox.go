@@ -5,15 +5,27 @@ import (
 	"math"
 )
 
-// BoundingBox is a rectangular bounding box
+// BoundingBox represents a rectangular bounding box with floating-point coordinates.
+//
+// This struct is used to define the spatial boundaries of table cells or other
+// rectangular elements, typically in coordinate systems where precise positioning
+// is required.
 type BoundingBox struct {
+	// XMin is the minimum X coordinate (left edge).
 	XMin float64 `json:"xMin" xml:"xMin,attr"`
+	// YMin is the minimum Y coordinate (top edge).
 	YMin float64 `json:"yMin" xml:"yMin,attr"`
+	// XMax is the maximum X coordinate (right edge).
 	XMax float64 `json:"xMax" xml:"xMax,attr"`
+	// YMax is the maximum Y coordinate (bottom edge).
 	YMax float64 `json:"yMax" xml:"yMax,attr"`
 }
 
-// Size returns the width and height of the BoundingBox
+// Size returns the width and height of the BoundingBox.
+//
+// Returns:
+//   - width: The horizontal extent of the box
+//   - height: The vertical extent of the box
 func (bb BoundingBox) Size() (width, height float64) {
 	return bb.XMax - bb.XMin, bb.YMax - bb.YMin
 }

@@ -16,26 +16,49 @@ import (
 	"github.com/domonda/go-types/nullable"
 )
 
+// ContentType is the MIME type for Excel files.
 const ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
+// ExcelFormatConfig contains configuration for Excel cell formatting.
+//
+// This struct provides settings for formatting different data types in Excel cells,
+// including date/time formats, number formats, and null value representations.
 type ExcelFormatConfig struct {
-	// https://exceljet.net/custom-number-formats
-	Time     string
-	Date     string
+	// Time specifies the Excel format string for time values.
+	// See https://exceljet.net/custom-number-formats for format options.
+	Time string
+	// Date specifies the Excel format string for date values.
+	Date string
+	// Location specifies the timezone for date/time formatting.
 	Location *time.Location
-	Null     string
+	// Null specifies the string representation for null values.
+	Null string
 }
 
+// ExcelCellWriter defines the interface for writing specific data types to Excel cells.
+//
+// This interface allows for custom formatting of different Go types when writing
+// them to Excel cells, providing fine-grained control over cell appearance and data types.
 type ExcelCellWriter interface {
+	// WriteCell writes a value to an Excel cell with the given formatting configuration.
 	WriteCell(cell *xlsx.Cell, val reflect.Value, config *ExcelFormatConfig) error
 }
 
+// ExcelCellWriterFunc implements ExcelCellWriter with a function.
+//
+// This allows you to use a simple function as an ExcelCellWriter without
+// creating a custom type.
 type ExcelCellWriterFunc func(cell *xlsx.Cell, val reflect.Value, config *ExcelFormatConfig) error
 
+// WriteCell calls the underlying function to write a cell value.
 func (f ExcelCellWriterFunc) WriteCell(cell *xlsx.Cell, val reflect.Value, config *ExcelFormatConfig) error {
 	return f(cell, val, config)
 }
 
+// Renderer implements the structtable.Renderer interface for Excel files.
+//
+// This renderer generates Excel (.xlsx) files from struct slices, with support
+// for custom formatting, multiple sheets, and various data types.
 type Renderer struct {
 	file            *xlsx.File
 	currentSheet    *xlsx.Sheet
@@ -45,6 +68,25 @@ type Renderer struct {
 	TypeCellWriters map[reflect.Type]ExcelCellWriter
 }
 
+// NewRenderer creates a new Excel Renderer with default formatting and styling.
+//
+// This constructor sets up a new Excel file with header styles, cell writers for common types,
+// and creates the initial sheet. The renderer is configured with sensible defaults for
+// date/time formatting and includes built-in cell writers for common data types.
+//
+// Parameters:
+//   - sheetName: Name for the initial sheet (will be sanitized to comply with Excel naming rules)
+//
+// Returns:
+//   - A new Renderer instance ready for use
+//   - err: Any error that occurred during initialization (e.g., invalid sheet name)
+//
+// Example:
+//
+//	renderer, err := excel.NewRenderer("Sales Data")
+//	if err != nil {
+//	    return err
+//	}
 func NewRenderer(sheetName string) (*Renderer, error) {
 	headerStyle := xlsx.NewStyle()
 	headerStyle.Font.Bold = true
@@ -80,6 +122,24 @@ func NewRenderer(sheetName string) (*Renderer, error) {
 	return excel, nil
 }
 
+// AddSheet adds a new sheet to the Excel file and sets it as the current sheet.
+//
+// This method creates a new worksheet with the specified name and makes it the active
+// sheet for subsequent rendering operations. The sheet name will be sanitized to comply
+// with Excel naming rules (removing invalid characters, limiting length).
+//
+// Parameters:
+//   - name: The name for the new sheet
+//
+// Returns:
+//   - err: Any error that occurred during sheet creation
+//
+// Example:
+//
+//	err := renderer.AddSheet("Q1 Results")
+//	if err != nil {
+//	    return err
+//	}
 func (excel *Renderer) AddSheet(name string) error {
 	newSheet, err := excel.file.AddSheet(sanitizeSheetName(name))
 	if err != nil {
@@ -89,6 +149,23 @@ func (excel *Renderer) AddSheet(name string) error {
 	return nil
 }
 
+// SetCurrentSheet sets the current sheet by name for subsequent rendering operations.
+//
+// This method switches the active sheet to an existing sheet with the specified name.
+// All subsequent calls to RenderHeaderRow and RenderRow will operate on this sheet.
+//
+// Parameters:
+//   - name: The name of the sheet to make current
+//
+// Returns:
+//   - err: Any error that occurred (e.g., sheet not found)
+//
+// Example:
+//
+//	err := renderer.SetCurrentSheet("Summary")
+//	if err != nil {
+//	    return err
+//	}
 func (excel *Renderer) SetCurrentSheet(name string) error {
 	for _, sheet := range excel.file.Sheets {
 		if sheet.Name == name {
@@ -99,6 +176,22 @@ func (excel *Renderer) SetCurrentSheet(name string) error {
 	return fmt.Errorf("sheet with name '%s' not found", name)
 }
 
+// RenderHeaderRow renders a header row with bold styling to the current sheet.
+//
+// This method creates a new row in the current sheet and populates it with the
+// provided column titles. The header row uses the configured header style (bold font,
+// Liberation Sans, size 10) to distinguish it from data rows.
+//
+// Parameters:
+//   - columnTitles: Slice of strings representing the column headers
+//
+// Returns:
+//   - err: Any error that occurred during rendering
+//
+// Example:
+//
+//	headers := []string{"Name", "Age", "Department", "Salary"}
+//	err := renderer.RenderHeaderRow(headers)
 func (excel *Renderer) RenderHeaderRow(columnTitles []string) error {
 	row := excel.currentSheet.AddRow()
 	for _, title := range columnTitles {
@@ -109,9 +202,24 @@ func (excel *Renderer) RenderHeaderRow(columnTitles []string) error {
 	return nil
 }
 
-// ValueOf differs from reflect.ValueOf in that it returns the argument val
-// casted to reflect.Value if val is alread a reflect.Value.
-// Else the standard result of reflect.ValueOf(val) will be returned.
+// ValueOf returns the argument casted to reflect.Value if it's already a reflect.Value,
+// otherwise returns the standard result of reflect.ValueOf(val).
+//
+// This utility function is useful when working with interfaces that might contain
+// either regular values or reflect.Value instances, ensuring consistent handling.
+//
+// Parameters:
+//   - val: The value to convert to reflect.Value
+//
+// Returns:
+//   - reflect.Value: The reflect.Value representation of the input
+//
+// Example:
+//
+//	value := excel.ValueOf(someInterface)
+//	if value.IsValid() {
+//	    // Process the value
+//	}
 func ValueOf(val any) reflect.Value {
 	v, ok := val.(reflect.Value)
 	if ok {
@@ -120,6 +228,25 @@ func ValueOf(val any) reflect.Value {
 	return reflect.ValueOf(val)
 }
 
+// DerefValueAndType dereferences pointers and returns the final value and type.
+//
+// This utility function is useful for handling pointer types in Excel rendering,
+// ensuring that the actual underlying value and type are used for formatting decisions.
+// It recursively dereferences pointers until it reaches a non-pointer value.
+//
+// Parameters:
+//   - val: The value to dereference
+//
+// Returns:
+//   - reflect.Value: The dereferenced value
+//   - reflect.Type: The type of the dereferenced value
+//
+// Example:
+//
+//	value, valueType := excel.DerefValueAndType(somePointer)
+//	if valueType.Kind() == reflect.String {
+//	    // Handle string type
+//	}
 func DerefValueAndType(val any) (reflect.Value, reflect.Type) {
 	v := ValueOf(val)
 	for v.Kind() == reflect.Ptr && !v.IsNil() {
@@ -128,6 +255,30 @@ func DerefValueAndType(val any) (reflect.Value, reflect.Type) {
 	return v, v.Type()
 }
 
+// RenderRow renders a data row to the current sheet with appropriate formatting.
+//
+// This method creates a new row in the current sheet and populates it with the
+// provided column values. It applies intelligent formatting based on the data type:
+// - Uses custom cell writers for registered types (dates, money, etc.)
+// - Handles nullable values with configurable null representation
+// - Applies appropriate Excel data types (numbers, strings, booleans)
+// - Sets right alignment for numeric values
+// - Falls back to String() method or fmt.Sprint for unknown types
+//
+// Parameters:
+//   - columnValues: Slice of reflect.Value instances representing the row data
+//
+// Returns:
+//   - err: Any error that occurred during rendering
+//
+// Example:
+//
+//	values := []reflect.Value{
+//	    reflect.ValueOf("John Doe"),
+//	    reflect.ValueOf(25),
+//	    reflect.ValueOf(time.Now()),
+//	}
+//	err := renderer.RenderRow(values)
 func (excel *Renderer) RenderRow(columnValues []reflect.Value) error {
 	row := excel.currentSheet.AddRow()
 	for _, val := range columnValues {
@@ -211,6 +362,23 @@ func (excel *Renderer) RenderRow(columnValues []reflect.Value) error {
 	return nil
 }
 
+// Result returns the Excel file as a byte slice.
+//
+// This method generates the complete Excel (.xlsx) file in memory and returns it
+// as a byte slice. This is useful when you need to store the file in memory,
+// send it over a network, or process it further before writing to disk.
+//
+// Returns:
+//   - []byte: The complete Excel file as bytes
+//   - err: Any error that occurred during file generation
+//
+// Example:
+//
+//	data, err := renderer.Result()
+//	if err != nil {
+//	    return err
+//	}
+//	// Use data bytes for further processing
 func (excel *Renderer) Result() ([]byte, error) {
 	buf := bytes.NewBuffer(nil)
 	err := excel.file.Write(buf)
@@ -220,10 +388,48 @@ func (excel *Renderer) Result() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// WriteResultTo writes the Excel file to an io.Writer.
+//
+// This method generates the complete Excel (.xlsx) file and writes it directly
+// to the provided io.Writer. This is more memory-efficient than Result() when
+// writing to files or network streams, as it doesn't need to hold the entire
+// file in memory.
+//
+// Parameters:
+//   - writer: The io.Writer to write the Excel file to
+//
+// Returns:
+//   - err: Any error that occurred during writing
+//
+// Example:
+//
+//	file, err := os.Create("output.xlsx")
+//	if err != nil {
+//	    return err
+//	}
+//	defer file.Close()
+//	err = renderer.WriteResultTo(file)
 func (excel *Renderer) WriteResultTo(writer io.Writer) error {
 	return excel.file.Write(writer)
 }
 
+// WriteResultFile writes the Excel file to a file using fs.File interface.
+//
+// This method generates the complete Excel (.xlsx) file and writes it to the
+// specified file using the fs.File interface. It handles file opening, writing,
+// and closing automatically. Optional file permissions can be specified.
+//
+// Parameters:
+//   - file: The fs.File to write the Excel file to
+//   - perm: Optional file permissions (uses default if not provided)
+//
+// Returns:
+//   - err: Any error that occurred during file operations or writing
+//
+// Example:
+//
+//	outputFile := fs.NewFile("reports/sales.xlsx")
+//	err := renderer.WriteResultFile(outputFile, fs.Permissions(0644))
 func (excel *Renderer) WriteResultFile(file fs.File, perm ...fs.Permissions) error {
 	writer, err := file.OpenWriter(perm...)
 	if err != nil {
@@ -234,10 +440,35 @@ func (excel *Renderer) WriteResultFile(file fs.File, perm ...fs.Permissions) err
 	return excel.file.Write(writer)
 }
 
+// MIMEType returns the MIME type for Excel files.
+//
+// This method returns the standard MIME type for Excel (.xlsx) files,
+// which is used for HTTP content-type headers and file type identification.
+//
+// Returns:
+//   - string: The MIME type "vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+//
+// Example:
+//
+//	contentType := renderer.MIMEType()
+//	w.Header().Set("Content-Type", contentType)
 func (*Renderer) MIMEType() string {
 	return "vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 }
 
+// writeDateExcelCell writes date.Date values to Excel cells with proper date formatting.
+//
+// This function handles date.Date values by converting them to Excel date format
+// using the configured date format string and timezone. Only non-zero dates are
+// written to avoid Excel date calculation issues.
+//
+// Parameters:
+//   - cell: The Excel cell to write to
+//   - val: The reflect.Value containing a date.Date
+//   - config: The Excel formatting configuration
+//
+// Returns:
+//   - err: Any error that occurred during cell writing
 func writeDateExcelCell(cell *xlsx.Cell, val reflect.Value, config *ExcelFormatConfig) error {
 	if d := val.Interface().(date.Date); !d.IsZero() {
 		cell.SetDateWithOptions(
@@ -251,6 +482,19 @@ func writeDateExcelCell(cell *xlsx.Cell, val reflect.Value, config *ExcelFormatC
 	return nil
 }
 
+// writeNullableDateExcelCell writes date.NullableDate values to Excel cells with proper date formatting.
+//
+// This function handles nullable date values by converting them to Excel date format
+// using the configured date format string and timezone. Only non-zero dates are
+// written to avoid Excel date calculation issues.
+//
+// Parameters:
+//   - cell: The Excel cell to write to
+//   - val: The reflect.Value containing a date.NullableDate
+//   - config: The Excel formatting configuration
+//
+// Returns:
+//   - err: Any error that occurred during cell writing
 func writeNullableDateExcelCell(cell *xlsx.Cell, val reflect.Value, config *ExcelFormatConfig) error {
 	if d := val.Interface().(date.NullableDate); !d.IsZero() {
 		cell.SetDateWithOptions(
@@ -264,6 +508,19 @@ func writeNullableDateExcelCell(cell *xlsx.Cell, val reflect.Value, config *Exce
 	return nil
 }
 
+// writeTimeExcelCell writes time.Time values to Excel cells with proper time formatting.
+//
+// This function handles time.Time values by converting them to Excel datetime format
+// using the configured time format string and the time's original timezone.
+// Only non-zero times are written to avoid Excel date calculation issues.
+//
+// Parameters:
+//   - cell: The Excel cell to write to
+//   - val: The reflect.Value containing a time.Time
+//   - config: The Excel formatting configuration
+//
+// Returns:
+//   - err: Any error that occurred during cell writing
 func writeTimeExcelCell(cell *xlsx.Cell, val reflect.Value, config *ExcelFormatConfig) error {
 	if t := val.Interface().(time.Time); !t.IsZero() {
 		cell.SetDateWithOptions(
@@ -277,6 +534,19 @@ func writeTimeExcelCell(cell *xlsx.Cell, val reflect.Value, config *ExcelFormatC
 	return nil
 }
 
+// writeDurationExcelCell writes time.Duration values to Excel cells with time format.
+//
+// This function handles duration values by converting them to Excel time format
+// using the Excel 1904 epoch and the "[h]:mm:ss" format string, which allows
+// durations longer than 24 hours to be displayed correctly.
+//
+// Parameters:
+//   - cell: The Excel cell to write to
+//   - val: The reflect.Value containing a time.Duration
+//   - config: The Excel formatting configuration (not used for durations)
+//
+// Returns:
+//   - err: Any error that occurred during cell writing
 func writeDurationExcelCell(cell *xlsx.Cell, val reflect.Value, config *ExcelFormatConfig) error {
 	duration := val.Interface().(time.Duration)
 	excel1904Epoc := time.Date(1904, time.January, 1, 0, 0, 0, 0, time.UTC)
@@ -284,11 +554,38 @@ func writeDurationExcelCell(cell *xlsx.Cell, val reflect.Value, config *ExcelFor
 	return nil
 }
 
+// writeMoneyAmountExcelCell writes money.Amount values to Excel cells with currency formatting.
+//
+// This function handles money amount values by formatting them as numbers with
+// the "#,##0.00" format string, which displays numbers with thousands separators
+// and two decimal places, suitable for currency amounts.
+//
+// Parameters:
+//   - cell: The Excel cell to write to
+//   - val: The reflect.Value containing a money.Amount
+//   - config: The Excel formatting configuration (not used for amounts)
+//
+// Returns:
+//   - err: Any error that occurred during cell writing
 func writeMoneyAmountExcelCell(cell *xlsx.Cell, val reflect.Value, config *ExcelFormatConfig) error {
 	cell.SetFloatWithFormat(val.Float(), "#,##0.00")
 	return nil
 }
 
+// writeMoneyCurrencyAmountExcelCell writes money.CurrencyAmount values to Excel cells with currency-specific formatting.
+//
+// This function handles currency amount values by formatting them with currency-specific
+// format strings. If no currency is specified, it uses the standard "#,##0.00" format.
+// For currencies, it uses a format like "#,##0.00 [$EUR];-#,##0.00 [$EUR]" to display
+// the currency symbol alongside the amount.
+//
+// Parameters:
+//   - cell: The Excel cell to write to
+//   - val: The reflect.Value containing a money.CurrencyAmount
+//   - config: The Excel formatting configuration (not used for currency amounts)
+//
+// Returns:
+//   - err: Any error that occurred during cell writing
 func writeMoneyCurrencyAmountExcelCell(cell *xlsx.Cell, val reflect.Value, config *ExcelFormatConfig) error {
 	ca := val.Interface().(money.CurrencyAmount)
 	if ca.Currency == "" {
@@ -302,6 +599,23 @@ func writeMoneyCurrencyAmountExcelCell(cell *xlsx.Cell, val reflect.Value, confi
 	return nil
 }
 
+// sanitizeSheetName sanitizes sheet names to comply with Excel naming rules.
+//
+// This function ensures that sheet names are valid for Excel by:
+// - Trimming whitespace
+// - Using "UNNAMED" for empty names
+// - Limiting length to 31 characters (with ellipsis for truncation)
+// - Replacing invalid characters (\, /, ?, *, [, ]) with underscores
+//
+// Parameters:
+//   - name: The original sheet name to sanitize
+//
+// Returns:
+//   - string: The sanitized sheet name safe for Excel
+//
+// Example:
+//
+//	safeName := sanitizeSheetName("Sales/Q1 2024") // Returns "Sales_Q1 2024"
 func sanitizeSheetName(name string) string {
 	name = strings.TrimSpace(name)
 	if name == "" {

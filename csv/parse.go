@@ -10,7 +10,28 @@ import (
 	"github.com/domonda/go-types/charset"
 )
 
-// ParseDetectFormat returns a slice of strings per row with the format detected via the FormatDetectionConfig.
+// ParseDetectFormat parses CSV data with automatic format detection.
+//
+// This function analyzes the input data to automatically detect the CSV format parameters
+// including character encoding, field separator, and line endings. It uses the provided
+// FormatDetectionConfig to determine which encodings and separators to test.
+//
+// Parameters:
+//   - data: Raw CSV data bytes to parse
+//   - configOrNil: Format detection configuration (uses default if nil)
+//
+// Returns:
+//   - rows: Parsed CSV rows as a 2D slice of strings
+//   - format: The detected format configuration
+//   - err: Any error that occurred during parsing or format detection
+//
+// Example:
+//
+//	data, err := ioutil.ReadFile("data.csv")
+//	if err != nil {
+//	    return err
+//	}
+//	rows, format, err := csv.ParseDetectFormat(data, nil)
 func ParseDetectFormat(data []byte, configOrNil *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
 	defer errs.WrapWithFuncParams(&err, data, configOrNil)
 	defer errs.RecoverPanicAsError(&err)
@@ -29,7 +50,26 @@ func ParseDetectFormat(data []byte, configOrNil *FormatDetectionConfig) (rows []
 	return rows, format, err
 }
 
-// ParseFileDetectFormat returns a slice of strings per row with the format detected via the FormatDetectionConfig.
+// ParseFileDetectFormat parses a CSV file with automatic format detection using context support.
+//
+// This function reads a CSV file from a fs.FileReader and automatically detects the format
+// parameters including character encoding, field separator, and line endings. It supports
+// context cancellation for long-running operations.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout control
+//   - csvFile: The file reader containing CSV data
+//   - configOrNil: Format detection configuration (uses default if nil)
+//
+// Returns:
+//   - rows: Parsed CSV rows as a 2D slice of strings
+//   - format: The detected format configuration
+//   - err: Any error that occurred during file reading or parsing
+//
+// Example:
+//
+//	file := fs.NewFile("data.csv")
+//	rows, format, err := csv.ParseFileDetectFormat(ctx, file, nil)
 func ParseFileDetectFormat(ctx context.Context, csvFile fs.FileReader, configOrNil *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
 	defer errs.WrapWithFuncParams(&err, ctx, csvFile, configOrNil)
 
@@ -41,6 +81,28 @@ func ParseFileDetectFormat(ctx context.Context, csvFile fs.FileReader, configOrN
 	return ParseDetectFormat(data, configOrNil)
 }
 
+// ParseWithFormat parses CSV data using a specific format configuration.
+//
+// This function parses CSV data according to the provided Format configuration,
+// including character encoding, field separator, and line endings. It validates
+// the format before parsing and handles BOM removal for UTF-8 files.
+//
+// Parameters:
+//   - data: Raw CSV data bytes to parse
+//   - format: The format configuration to use for parsing
+//
+// Returns:
+//   - rows: Parsed CSV rows as a 2D slice of strings
+//   - err: Any error that occurred during parsing or format validation
+//
+// Example:
+//
+//	format := &csv.Format{
+//	    Encoding:  "UTF-8",
+//	    Separator: ",",
+//	    Newline:   "\n",
+//	}
+//	rows, err := csv.ParseWithFormat(data, format)
 func ParseWithFormat(data []byte, format *Format) (rows [][]string, err error) {
 	defer errs.WrapWithFuncParams(&err, data, format)
 
@@ -77,6 +139,25 @@ func ParseWithFormat(data []byte, format *Format) (rows [][]string, err error) {
 	return readLines(lines, []byte(format.Separator), "\n")
 }
 
+// ParseFileWithFormat parses a CSV file using a specific format configuration with context support.
+//
+// This function reads a CSV file from a fs.FileReader and parses it according to the
+// provided Format configuration. It supports context cancellation for long-running operations.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout control
+//   - csvFile: The file reader containing CSV data
+//   - format: The format configuration to use for parsing
+//
+// Returns:
+//   - rows: Parsed CSV rows as a 2D slice of strings
+//   - err: Any error that occurred during file reading or parsing
+//
+// Example:
+//
+//	format := csv.NewFormat(",")
+//	file := fs.NewFile("data.csv")
+//	rows, err := csv.ParseFileWithFormat(ctx, file, format)
 func ParseFileWithFormat(ctx context.Context, csvFile fs.FileReader, format *Format) (rows [][]string, err error) {
 	defer errs.WrapWithFuncParams(&err, ctx, csvFile, format)
 
@@ -88,6 +169,26 @@ func ParseFileWithFormat(ctx context.Context, csvFile fs.FileReader, format *For
 	return ParseWithFormat(data, format)
 }
 
+// detectFormatAndSplitLines detects CSV format parameters and splits data into lines.
+//
+// This internal function analyzes the input data to automatically detect the CSV format
+// parameters including character encoding, field separator, and line endings. It then
+// splits the data into individual lines for further processing.
+//
+// Parameters:
+//   - data: Raw CSV data bytes to analyze
+//   - config: Format detection configuration (must not be nil)
+//
+// Returns:
+//   - format: The detected format configuration
+//   - lines: Data split into individual lines as byte slices
+//   - err: Any error that occurred during format detection
+//
+// The function performs the following detection steps:
+// 1. Character encoding detection using charset.AutoDecode
+// 2. Line ending detection by analyzing line break patterns
+// 3. Field separator detection by analyzing field patterns
+// 4. Data splitting into individual lines
 func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (format *Format, lines [][]byte, err error) {
 	defer errs.WrapWithFuncParams(&err, data, config)
 
@@ -272,8 +373,27 @@ func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (form
 	return format, lines, nil
 }
 
-// parseSepHeaderLine parses "sep=," or "SEP=," like header lines
-// and returns the separator
+// parseSepHeaderLine parses Excel-style separator header lines and extracts the separator character.
+//
+// This function handles Excel-style separator declaration lines like "sep=," or "SEP=;"
+// that are sometimes included at the beginning of CSV files to indicate the field separator.
+// It supports both quoted and unquoted formats and case-insensitive "sep" keyword.
+//
+// Parameters:
+//   - line: The header line bytes to parse
+//
+// Returns:
+//   - sep: The detected separator character, or empty string if not found
+//
+// Supported formats:
+//   - "sep=," (unquoted)
+//   - "SEP=;" (case-insensitive)
+//   - "\"sep=,\"" (quoted)
+//
+// Example:
+//
+//	separator := parseSepHeaderLine([]byte("sep=;"))
+//	// Returns ";"
 func parseSepHeaderLine(line []byte) (sep string) {
 	if len(line) < 5 {
 		return ""
@@ -290,6 +410,34 @@ func parseSepHeaderLine(line []byte) (sep string) {
 	return string(line[4:5])
 }
 
+// readLines parses CSV lines into fields, handling quoted fields and multi-line fields properly.
+//
+// This function processes a slice of byte lines and converts them into CSV fields,
+// properly handling quoted fields that may contain separators, newlines, or escaped quotes.
+// It supports multi-line fields where quoted content spans multiple lines.
+//
+// Parameters:
+//   - lines: Slice of byte lines to parse
+//   - separator: Field separator as byte slice
+//   - newlineReplacement: String to replace newlines in quoted fields
+//
+// Returns:
+//   - rows: Parsed CSV rows as 2D slice of strings
+//   - err: Any error that occurred during parsing
+//
+// The function handles:
+// - Quoted fields containing separators or newlines
+// - Escaped quotes within quoted fields
+// - Multi-line fields (quoted content spanning multiple lines)
+// - Proper unescaping of quoted content
+//
+// Example:
+//
+//	lines := [][]byte{
+//	    []byte("Name,Age,City"),
+//	    []byte("\"John Doe\",25,\"New York\""),
+//	}
+//	rows, err := readLines(lines, []byte(","), "\n")
 func readLines(lines [][]byte, separator []byte, newlineReplacement string) (rows [][]string, err error) {
 	defer errs.WrapWithFuncParams(&err, lines, separator, newlineReplacement)
 
@@ -435,6 +583,21 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 	return rows, nil
 }
 
+// countQuotesLeft counts consecutive quote characters from the beginning of a string.
+//
+// This utility function counts the number of consecutive double-quote characters
+// starting from the beginning of the byte slice until it encounters a non-quote character.
+//
+// Parameters:
+//   - str: The byte slice to analyze
+//
+// Returns:
+//   - int: The number of consecutive quotes from the start
+//
+// Example:
+//
+//	count := countQuotesLeft([]byte("\"\"\"text"))
+//	// Returns 3
 func countQuotesLeft(str []byte) int {
 	for i, c := range str {
 		if c != '"' {
@@ -444,6 +607,21 @@ func countQuotesLeft(str []byte) int {
 	return len(str)
 }
 
+// countQuotesRight counts consecutive quote characters from the end of a string.
+//
+// This utility function counts the number of consecutive double-quote characters
+// starting from the end of the byte slice until it encounters a non-quote character.
+//
+// Parameters:
+//   - str: The byte slice to analyze
+//
+// Returns:
+//   - int: The number of consecutive quotes from the end
+//
+// Example:
+//
+//	count := countQuotesRight([]byte("text\"\"\""))
+//	// Returns 3
 func countQuotesRight(str []byte) int {
 	for i := len(str) - 1; i >= 0; i-- {
 		if str[i] != '"' {
@@ -453,6 +631,26 @@ func countQuotesRight(str []byte) int {
 	return len(str)
 }
 
+// countQuotesLeftRight counts consecutive quote characters from both ends of a string.
+//
+// This utility function counts consecutive double-quote characters from both the
+// beginning and end of a byte slice. It handles the special case where the entire
+// string consists of quotes by distributing them evenly between left and right counts.
+//
+// Parameters:
+//   - str: The byte slice to analyze
+//
+// Returns:
+//   - left: The number of consecutive quotes from the start
+//   - right: The number of consecutive quotes from the end
+//
+// Example:
+//
+//	left, right := countQuotesLeftRight([]byte("\"\"\"text\"\""))
+//	// Returns left=3, right=2
+//
+//	left, right := countQuotesLeftRight([]byte("\"\"\"\"\""))
+//	// Returns left=3, right=2 (even distribution)
 func countQuotesLeftRight(str []byte) (left, right int) {
 	left = countQuotesLeft(str)
 	right = countQuotesRight(str)
@@ -465,6 +663,23 @@ func countQuotesLeftRight(str []byte) (left, right int) {
 	return left, right
 }
 
+// sanitizeUTF8 cleans UTF-8 data by replacing problematic characters with regular spaces.
+//
+// This function processes UTF-8 encoded data and replaces common problematic characters
+// that can cause issues in CSV parsing or display. It specifically handles:
+// - Invalid UTF-8 replacement characters (�)
+// - Non-breaking spaces (U+00A0) which can cause parsing issues
+//
+// Parameters:
+//   - str: The UTF-8 byte slice to sanitize
+//
+// Returns:
+//   - []byte: The sanitized UTF-8 byte slice with problematic characters replaced
+//
+// Example:
+//
+//	clean := sanitizeUTF8([]byte("Hello\u00a0World�"))
+//	// Returns []byte("Hello World ")
 func sanitizeUTF8(str []byte) []byte {
 	return bytes.Map(
 		func(r rune) rune {
