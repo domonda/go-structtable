@@ -12,7 +12,7 @@ type Reader interface {
 	ReadRow(index int, destStruct reflect.Value) error
 }
 
-func Read(reader Reader, structSlicePtr interface{}, numHeaderRows int) (headerRows [][]string, err error) {
+func Read(reader Reader, structSlicePtr any, numHeaderRows int) (headerRows [][]string, err error) {
 	if numHeaderRows < 0 {
 		return nil, errs.New("numHeaderRows can't be negative")
 	}

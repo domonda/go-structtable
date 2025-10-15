@@ -21,7 +21,7 @@ type Renderer interface {
 	MIMEType() string
 }
 
-func Render(renderer Renderer, structSlice interface{}, renderTitleRow bool, columnMapper ColumnMapper) error {
+func Render(renderer Renderer, structSlice any, renderTitleRow bool, columnMapper ColumnMapper) error {
 	rows := reflect.ValueOf(structSlice)
 	if rows.Kind() != reflect.Slice {
 		return errs.Errorf("passed value is not a slice, but %T", structSlice)
@@ -46,7 +46,7 @@ func Render(renderer Renderer, structSlice interface{}, renderTitleRow bool, col
 	return nil
 }
 
-func RenderTo(writer io.Writer, renderer Renderer, structSlice interface{}, renderTitleRow bool, columnMapper ColumnMapper) error {
+func RenderTo(writer io.Writer, renderer Renderer, structSlice any, renderTitleRow bool, columnMapper ColumnMapper) error {
 	err := Render(renderer, structSlice, renderTitleRow, columnMapper)
 	if err != nil {
 		return err
@@ -59,7 +59,7 @@ func RenderTo(writer io.Writer, renderer Renderer, structSlice interface{}, rend
 	return err
 }
 
-func RenderBytes(renderer Renderer, structSlice interface{}, renderTitleRow bool, columnMapper ColumnMapper) ([]byte, error) {
+func RenderBytes(renderer Renderer, structSlice any, renderTitleRow bool, columnMapper ColumnMapper) ([]byte, error) {
 	err := Render(renderer, structSlice, renderTitleRow, columnMapper)
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func RenderBytes(renderer Renderer, structSlice interface{}, renderTitleRow bool
 	return renderer.Result()
 }
 
-func RenderFile(file fs.File, renderer Renderer, structSlice interface{}, renderTitleRow bool, columnMapper ColumnMapper) error {
+func RenderFile(file fs.File, renderer Renderer, structSlice any, renderTitleRow bool, columnMapper ColumnMapper) error {
 	err := Render(renderer, structSlice, renderTitleRow, columnMapper)
 	if err != nil {
 		return err

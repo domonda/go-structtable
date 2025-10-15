@@ -155,7 +155,7 @@ func (*HTMLRenderer) MIMEType() string {
 	return "text/html; charset=UTF-8"
 }
 
-func (htm *HTMLRenderer) write(format string, a ...interface{}) error {
+func (htm *HTMLRenderer) write(format string, a ...any) error {
 	_, err := fmt.Fprintf(&htm.buf, format, a...)
 	return err
 }

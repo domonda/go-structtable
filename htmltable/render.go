@@ -29,7 +29,7 @@ func NewRenderer(caption string, config *strfmt.FormatConfig) *Renderer {
 }
 
 // Render is a shortcut to render a HTML table with english text formating
-func Render(writer io.Writer, structSlice interface{}, caption string, renderHeaderRow bool, columnMapper structtable.ColumnMapper) error {
+func Render(writer io.Writer, structSlice any, caption string, renderHeaderRow bool, columnMapper structtable.ColumnMapper) error {
 	renderer := NewRenderer(caption, strfmt.NewEnglishFormatConfig())
 	return structtable.RenderTo(writer, renderer, structSlice, renderHeaderRow, columnMapper)
 }
