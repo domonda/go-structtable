@@ -303,8 +303,6 @@ func (m ReplaceNewlineWithSpaceModifier) Name() string {
 }
 
 func (m ReplaceNewlineWithSpaceModifier) Modify(rows [][]string) [][]string {
-	if len(rows) > 0 {
-		rows[len(rows)-1] = nil
-	}
+	ReplaceNewlineWithSpacefunc(rows)
 	return rows
 }

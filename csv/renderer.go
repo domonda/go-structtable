@@ -49,7 +49,7 @@ func (csv *Renderer) WithFormat(format *Format) *Renderer {
 func (csv *Renderer) WithDelimiter(delimiter string) *Renderer {
 	err := csv.SetDelimiter(delimiter)
 	if err != nil {
-		panic("err")
+		panic("error setting delimiter: " + err.Error())
 	}
 	return csv
 }

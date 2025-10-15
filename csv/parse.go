@@ -92,7 +92,7 @@ func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (form
 	defer errs.WrapWithFuncParams(&err, data, config)
 
 	if config == nil {
-		panic("config must not be nil")
+		return nil, nil, errs.New("FormatDetectionConfig must not be nil")
 	}
 
 	format = new(Format)
@@ -370,7 +370,7 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 
 						// Remove quotes of joined field
 						if field[0] != '"' || field[len(field)-1] != '"' {
-							panic("csv.Read is broken")
+							return nil, errs.New("should never happen: csv.Read is broken")
 						}
 						field = field[1 : len(field)-1]
 
