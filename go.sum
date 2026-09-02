@@ -7,8 +7,8 @@ github.com/domonda/go-errs v1.0.4 h1:oX7WWrAFbRTd5D+vSQyKvvv97mR7SKNfLK8CEoLInxA
 github.com/domonda/go-errs v1.0.4/go.mod h1:zt5V57wkHr3YNuCGemVABL/OUa0zFbixzr5CXiKYp6w=
 github.com/domonda/go-pretty v1.0.0 h1:58OcAmEgcYEOuMQRXtC0jAndPKqHfV3TVZUttWKnRc4=
 github.com/domonda/go-pretty v1.0.0/go.mod h1:O05JaeEezfZ2ian+t10+JrAZFKadSIsqWdukNtOPEzI=
-github.com/domonda/go-types v0.0.0-20260902111237-36e58603e055 h1:7mbpaON9PVUrg//QuZcpQx9ynOam5n/sPWovyOK2A3o=
-github.com/domonda/go-types v0.0.0-20260902111237-36e58603e055/go.mod h1:tr0N7f5vUWyADZR4DzPBNGoT4N5LTjl3EJ53Pqrj91Q=
+github.com/domonda/go-types v0.0.0-20260902160716-5c6c50f32fcd h1:jp3+l4MrnwmrClAwGo6x8etaCt1ghgThUB+MJPIDkKk=
+github.com/domonda/go-types v0.0.0-20260902160716-5c6c50f32fcd/go.mod h1:tr0N7f5vUWyADZR4DzPBNGoT4N5LTjl3EJ53Pqrj91Q=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
 github.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
 github.com/fsnotify/fsnotify v1.10.1 h1:b0/UzAf9yR5rhf3RPm9gf3ehBPpf0oZKIjtpKrx59Ho=
