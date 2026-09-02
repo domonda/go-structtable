@@ -731,6 +731,18 @@ func TestParseDetectFormat_Detection(t *testing.T) {
 			wantFirstRow: []string{"a", "b"},
 		},
 		{
+			// The preamble and trailer lines of a bank statement are single
+			// column records and outnumber the table rows here. Counting them
+			// made the most common column count of the semicolon one, which
+			// discarded it and left the comma default, splitting the table on
+			// the decimal commas of the amounts instead.
+			name:         "single column preamble does not outvote the table",
+			csv:          "Kontoauszug Nr. 4\nErstellt von: Musterbank AG\nKonto: AT12 3456\nStichtag: 01.01.2025\nDatum;Text;Betrag\n01.01.2025;Miete;-500,00\n02.01.2025;Lohn;2000,00\nEnde des Auszugs\nSeite 1 von 1\n",
+			wantSep:      ";",
+			wantNewline:  "\n",
+			wantFirstRow: []string{"Kontoauszug Nr. 4"},
+		},
+		{
 			// Unbalanced quotes make the quoted state useless for everything
 			// after them, so every byte is counted instead.
 			name:         "unbalanced quote still detects",

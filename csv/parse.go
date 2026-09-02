@@ -446,9 +446,21 @@ func (s *csvStructure) bestSeparator() (separator string, ok bool) {
 	)
 	for candidate, sep := range separatorCandidates {
 		// The most common number of columns of this candidate,
-		// more columns win a tie
+		// more columns win a tie.
+		//
+		// Records that the candidate does not separate at all are left out of
+		// that vote unless it separates no record, because the header and
+		// trailer lines of a table are single column records that must not
+		// outvote the actual table rows even when there are more of them.
+		// A bank statement with more preamble and trailer lines than data rows
+		// is the common case, and counting those made the most common column
+		// count one, which discarded the real separator below.
+		// [SetRowsWithNonUniformColumnsNil] applies the same rule to the rows.
 		var columns, records int
 		for c, r := range s.columnsPerRecord[candidate] {
+			if c < 2 && len(s.columnsPerRecord[candidate]) > 1 {
+				continue
+			}
 			if r > records || (r == records && c > columns) {
 				columns, records = c, r
 			}
