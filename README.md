@@ -19,7 +19,7 @@ The `go-structtable` package provides a comprehensive solution for converting be
 - **Type-Safe Operations**: Full reflection-based type handling with custom formatters
 - **Reader Interface**: Unified interface for reading tabular data into struct slices
 - **Renderer Interface**: Unified interface for rendering struct slices to various formats
-- **Format Detection**: Automatic detection of CSV format parameters
+- **Format Detection**: Automatic detection of CSV encoding, field separator, and line endings
 - **Data Modification**: Built-in modifiers for cleaning and transforming data
 
 ## Core Concepts
@@ -257,6 +257,16 @@ reader, err := csv.NewReader(file, format, "\n", modifiers, columnMappings)
 config := csv.NewFormatDetectionConfig()
 rows, format, err := csv.ParseDetectFormat(data, config)
 ```
+
+`ParseDetectFormat` detects:
+
+- **Encoding**: UTF-8, UTF-16LE, ISO 8859-1, Windows 1252, and Macintosh (configurable via `FormatDetectionConfig`)
+- **Separator**: `,`, `;`, tab, or `|`, picked by the candidate that gives the most uniform column count
+- **Line endings**: `\n`, `\r\n`, and `\n\r` (a bare `\r` is not treated as a line ending)
+
+Separators and newlines inside quoted fields are ignored by the detection, so a quoted field
+cannot outvote the real structure of the data. An Excel style `sep=,` first line declares the
+separator explicitly and wins over the detection.
 
 ## Migration to go-retable
 
