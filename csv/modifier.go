@@ -33,6 +33,11 @@ func (m SetRowsWithNonUniformColumnsNilModifier) Modify(rows [][]string) [][]str
 
 // SetRowsWithNonUniformColumnsNil set rows to nil that don't have the same field count as the majority of rows,
 // so every rows is either nil or has the same number of fields.
+//
+// Single column rows don't take part in the majority vote unless no row has
+// more than one column, because header and trailer lines of a table are usually
+// single column rows that must not outvote the actual table rows even if there
+// are more of them.
 func SetRowsWithNonUniformColumnsNil(rows [][]string) [][]string {
 	if len(rows) == 0 {
 		return nil
@@ -43,9 +48,15 @@ func SetRowsWithNonUniformColumnsNil(rows [][]string) [][]string {
 	// map from number of columns to number of rows with that column
 	rowColumnsCount := make(map[int]int)
 	for _, row := range rows {
-		if rowColumns := len(row); rowColumns > 1 {
+		if rowColumns := len(row); rowColumns > 0 {
 			rowColumnsCount[rowColumns]++
 		}
+	}
+	if len(rowColumnsCount) > 1 {
+		// Header and trailer lines of a table are usually single column rows
+		// that must not outvote the actual table rows, so they only count
+		// when no row has more than one column.
+		delete(rowColumnsCount, 1)
 	}
 	majorityRowColumns := 0
 	highestRowCount := 0
