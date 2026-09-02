@@ -16,13 +16,26 @@ import (
 // including character encoding, field separator, and line endings. It uses the provided
 // FormatDetectionConfig to determine which encodings and separators to test.
 //
+// Format detection algorithm:
+//  1. Encoding detection: the configured encodings are tested against the
+//     configured test strings to find the one that decodes special characters
+//  2. Line ending detection: counts \r\n, \n\r and bare \n outside of quoted
+//     fields and takes the most frequent one
+//  3. Separator detection: scores comma, semicolon, tab and pipe by how uniform
+//     the resulting column count is instead of by how often they occur, counting
+//     only outside of quoted fields
+//  4. Header line detection: an Excel style "sep=X" first line declares the
+//     separator explicitly and wins over the detection
+//
 // Parameters:
 //   - data: Raw CSV data bytes to parse
 //   - configOrNil: Format detection configuration (uses default if nil)
 //
 // Returns:
 //   - rows: Parsed CSV rows as a 2D slice of strings
-//   - format: The detected format configuration
+//   - format: The detected format configuration when err is nil, otherwise nil.
+//     A returned format is always valid, so callers can re-use it for parsing
+//     and writing further data
 //   - err: Any error that occurred during parsing or format detection
 //
 // Example:
@@ -105,6 +118,7 @@ func ParseFileDetectFormat(ctx context.Context, csvFile fs.FileReader, configOrN
 //	rows, err := csv.ParseWithFormat(data, format)
 func ParseWithFormat(data []byte, format *Format) (rows [][]string, err error) {
 	defer errs.WrapWithFuncParams(&err, data, format)
+	defer errs.RecoverPanicAsError(&err)
 
 	err = format.Validate()
 	if err != nil {
@@ -126,7 +140,7 @@ func ParseWithFormat(data []byte, format *Format) (rows [][]string, err error) {
 
 	data = sanitizeUTF8(data)
 
-	lines := bytes.Split(data, []byte(format.Newline))
+	lines := splitLines(data, format.Newline)
 	if len(lines) > 0 {
 		if headerSep := parseSepHeaderLine(lines[0]); headerSep != "" {
 			if headerSep != format.Separator {
@@ -181,14 +195,22 @@ func ParseFileWithFormat(ctx context.Context, csvFile fs.FileReader, format *For
 //
 // Returns:
 //   - format: The detected format configuration
-//   - lines: Data split into individual lines as byte slices
+//   - lines: Data split into individual lines as byte slices, with the
+//     "sep=X" header line removed if present, or nil when the data holds
+//     no non-empty line
 //   - err: Any error that occurred during format detection
 //
 // The function performs the following detection steps:
-// 1. Character encoding detection using charset.AutoDecode
-// 2. Line ending detection by analyzing line break patterns
-// 3. Field separator detection by analyzing field patterns
-// 4. Data splitting into individual lines
+//  1. Character encoding detection using charset.AutoDecode
+//  2. Scanning the structural bytes outside of quoted fields
+//  3. Line ending detection from the counted newlines
+//  4. Data splitting into individual lines
+//  5. An Excel style "sep=X" header line, which declares the separator
+//     explicitly and returns without the separator detection below
+//  6. Field separator detection from the uniformity of the column count
+//
+// Separators and newlines inside quoted fields are excluded from both detections,
+// so a quoted field cannot outvote the real structure of the data.
 func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (format *Format, lines [][]byte, err error) {
 	defer errs.WrapWithFuncParams(&err, data, config)
 
@@ -221,35 +243,38 @@ func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (form
 	data = sanitizeUTF8(data)
 
 	///////////////////////////////////////////////////////////////////////////
+	// Scan the structure outside of quoted fields for the detections below
+
+	structure := scanStructure(data, true)
+	if structure.endedQuoted {
+		// The data ends within a quoted field, so its quoting is unbalanced
+		// and everything after the offending quote was skipped. Scan again
+		// without quoting instead of guessing which quote is the wrong one.
+		structure = scanStructure(data, false)
+	}
+
+	///////////////////////////////////////////////////////////////////////////
 	// Detect line endings
 
-	// var (
-	// 	numLinesR  = bytes.Count(data, []byte{'\r'})
-	// 	numLinesN  = bytes.Count(data, []byte{'\n'})
-	// 	numLinesRN = bytes.Count(data, []byte{'\r', '\n'})
-	// )
-	// // fmt.Println("n:", numLinesN, "rn:", numLinesRN, "r:", numLinesR)
-	// switch {
-	// case numLinesR > numLinesN:
-	// 	format.Newline = "\r"
-	// case numLinesN > numLinesRN:
-	// 	format.Newline = "\n"
-	// default:
-	// 	format.Newline = "\r\n"
-	// }
-
-	// Simple rule: if there are \r\n line endings
-	// then take those because that's the standard
-	if bytes.Contains(data, []byte{'\r', '\n'}) {
+	// Newlines within a quoted field are part of its value and were not
+	// counted, so a single quoted \r\n can't switch a whole \n separated
+	// file to \r\n line endings. A wider line ending wins a tie because a
+	// file using one has no bare \n of its own to count, and \r\n wins over
+	// \n\r because it is the standard.
+	numBareLF := structure.numLF - structure.numCRLF - structure.numLFCR
+	switch {
+	case structure.numCRLF > 0 && structure.numCRLF >= structure.numLFCR && structure.numCRLF >= numBareLF:
 		format.Newline = "\r\n"
-	} else {
+	case structure.numLFCR > 0 && structure.numLFCR >= numBareLF:
+		format.Newline = "\n\r"
+	default:
 		format.Newline = "\n"
 	}
 
 	///////////////////////////////////////////////////////////////////////////
 	// Detect separator
 
-	lines = bytes.Split(data, []byte(format.Newline))
+	lines = splitLines(data, format.Newline)
 
 	if len(lines) > 0 {
 		format.Separator = parseSepHeaderLine(lines[0])
@@ -258,119 +283,187 @@ func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (form
 		}
 	}
 
-	type sepCounts struct {
-		commas     int
-		semicolons int
-		tabs       int
-	}
+	// Default separator, also used when there is no line to detect one from,
+	// because the returned Format is used by callers for parsing and writing
+	// further data and has to be valid in any case.
+	format.Separator = ","
 
-	var (
-		sep sepCounts
-		// lineSepCounts  []sepCounts
-		// numSeperators    int
-		numNonEmptyLines int
-		// unusedSeparators string
-	)
-
-	for i := range lines {
-		// Remove double newlines
-		lines[i] = bytes.Trim(lines[i], "\r\n")
-		line := lines[i]
-
-		if len(line) == 0 {
-			continue
+	numNonEmptyLines := 0
+	for _, line := range lines {
+		if len(line) > 0 {
+			numNonEmptyLines++
 		}
-
-		numNonEmptyLines++
-
-		commas := bytes.Count(line, []byte{','})
-		semicolons := bytes.Count(line, []byte{';'})
-		tabs := bytes.Count(line, []byte{'\t'})
-
-		sep.commas += commas
-		sep.semicolons += semicolons
-		sep.tabs += tabs
-		// lineSepCounts = append(lineSepCounts, sepCounts{
-		// 	commas:     commas,
-		// 	semicolons: semicolons,
-		// 	tabs:       tabs,
-		// })
 	}
-
 	if numNonEmptyLines == 0 {
 		return format, nil, nil
 	}
 
-	switch {
-	case sep.commas > sep.semicolons && sep.commas > sep.tabs:
-		// numSeperators = sep.commas
-		// unusedSeparators = ";\t"
-		format.Separator = ","
-
-	case sep.semicolons > sep.commas && sep.semicolons > sep.tabs:
-		// numSeperators = sep.semicolons
-		// unusedSeparators = ",\t"
-		format.Separator = ";"
-
-	case sep.tabs > sep.commas && sep.tabs > sep.semicolons:
-		// numSeperators = sep.tabs
-		// unusedSeparators = ",;"
-		format.Separator = "\t"
-
-	default:
-		// numSeperators = sep.commas
-		// unusedSeparators = ";\t"
-		format.Separator = ","
+	if separator, ok := structure.bestSeparator(); ok {
+		format.Separator = separator
 	}
 
-	///////////////////////////////////////////////////////////////////////////
-	// Detect line embedded as single field
-
-	// var (
-	// 	escapedQuotedSeparators    = []byte{'"', '"', format.Separator[0], '"', '"'}
-	// 	numEscapedQuotedSeparators = 0
-	// 	lineAsField                = true
-	// )
-	// for i, line := range lines {
-	// 	if len(line) == 0 {
-	// 		continue
-	// 	}
-	// 	line = bytes.Trim(line, unusedSeparators)
-	// 	left, right := countQuotesLeftRight(line)
-	// 	if left == 1 && right == 1 {
-	// 		line = line[1 : len(line)-1]
-	// 		num := bytes.Count(line, escapedQuotedSeparators)
-	// 		if num == 0 {
-	// 			lineAsField = false
-	// 			break
-	// 		}
-	// 		if i == 0 {
-	// 			numEscapedQuotedSeparators = num
-	// 		} else {
-	// 			if num != numEscapedQuotedSeparators {
-	// 				lineAsField = false
-	// 				break
-	// 			}
-	// 		}
-	// 	} else {
-	// 		lineAsField = false
-	// 		break
-	// 	}
-	// }
-	// lineAsField = false // TODO remove and test
-	// if lineAsField {
-	// 	for i, line := range lines {
-	// 		if len(line) == 0 {
-	// 			continue
-	// 		}
-	// 		line = bytes.Trim(line, unusedSeparators)
-	// 		line = line[1 : len(line)-1]
-	// 		line = bytes.ReplaceAll(line, []byte{'"', '"'}, []byte{'"'})
-	// 		lines[i] = line
-	// 	}
-	// }
-
 	return format, lines, nil
+}
+
+// splitLines splits data into lines separated by newline and removes
+// stray newline characters from the end of every line.
+//
+// Trimming is part of splitting because a file can use a line ending wider
+// than the newline it is split by, which would otherwise leak into the last
+// field of every line.
+//
+// Only the end of a line is trimmed. A \r at the start of a line is not
+// residue of a \n\r line ending, because those are detected and split by,
+// but a carriage return within a quoted field that has to be preserved.
+//
+// Trimming the end still loses a \r that directly precedes the newline the
+// lines are split by, like the one in A;"x\r\ny";B within a file with \n
+// line endings. There the \r can't be told apart from the residue of a file
+// with mixed line endings, which is what is trimmed here. Telling the two
+// apart needs the quoted state while splitting, which this parser only has
+// after the lines are split.
+func splitLines(data []byte, newline string) [][]byte {
+	lines := bytes.Split(data, []byte(newline))
+	for i := range lines {
+		lines[i] = bytes.TrimRight(lines[i], "\r\n")
+	}
+	return lines
+}
+
+// separatorCandidates are the separators that can be detected from the data,
+// ordered by preference so that the earlier one wins a tie in bestSeparator.
+var separatorCandidates = []byte{',', ';', '\t', '|'}
+
+// csvStructure is what scanStructure counted outside of quoted fields.
+type csvStructure struct {
+	numLF      int // Newlines, of which numCRLF and numLFCR are part of a wider line ending
+	numCRLF    int
+	numLFCR    int
+	numRecords int // Records with any content, a record can span several lines
+
+	// columnsPerRecord maps for every separatorCandidates index
+	// the number of columns to the number of records with that many columns
+	columnsPerRecord []map[int]int
+
+	// endedQuoted reports that the data ends within a quoted field, meaning
+	// that its quoting is unbalanced and everything after the offending quote
+	// was skipped
+	endedQuoted bool
+}
+
+// scanStructure counts the structural bytes of the CSV data that are not part
+// of a quoted field value: the line endings, and for every separator candidate
+// how many records have how many columns.
+//
+// A quote toggles the quoted state, except for a doubled quote within a quoted
+// field which is an escaped quote that does not end it. Toggling on quotes
+// alone keeps the scan independent of the separator, which is not known yet
+// while it is detected. Any newline outside of a quoted field ends a record,
+// so the record boundaries don't depend on the detected line ending either,
+// and a newline within a quoted field does not split a record in two.
+//
+// With skipQuoted false the quoting is ignored, which is the fallback for data
+// whose quoting is unbalanced.
+func scanStructure(data []byte, skipQuoted bool) *csvStructure {
+	s := &csvStructure{columnsPerRecord: make([]map[int]int, len(separatorCandidates))}
+	for i := range s.columnsPerRecord {
+		s.columnsPerRecord[i] = make(map[int]int)
+	}
+
+	separators := make([]int, len(separatorCandidates))
+	recordHasContent := false
+	endRecord := func() {
+		if recordHasContent {
+			s.numRecords++
+			for i, numSeparators := range separators {
+				s.columnsPerRecord[i][numSeparators+1]++
+			}
+		}
+		clear(separators)
+		recordHasContent = false
+	}
+
+	quoted := false
+	for i := 0; i < len(data); i++ {
+		c := data[i]
+		if skipQuoted && c == '"' {
+			if quoted && i+1 < len(data) && data[i+1] == '"' {
+				i++ // Escaped quote within a quoted field
+				continue
+			}
+			quoted = !quoted
+			recordHasContent = true
+			continue
+		}
+		if quoted {
+			continue
+		}
+		switch c {
+		case '\r':
+			if i+1 < len(data) && data[i+1] == '\n' {
+				i++
+				s.numLF++
+				s.numCRLF++
+			}
+			endRecord()
+		case '\n':
+			s.numLF++
+			if i+1 < len(data) && data[i+1] == '\r' {
+				i++
+				s.numLFCR++
+			}
+			endRecord()
+		default:
+			recordHasContent = true
+			for candidate, separator := range separatorCandidates {
+				if c == separator {
+					separators[candidate]++
+				}
+			}
+		}
+	}
+	endRecord()
+
+	s.endedQuoted = quoted
+	return s
+}
+
+// bestSeparator returns the candidate that splits the records into the most
+// uniform number of columns, because the right separator is the one that makes
+// the data rectangular. Counting occurrences alone is not enough: unquoted text
+// containing commas can hold more of them than a semicolon separated file has
+// semicolons. More columns win a tie, then the candidate order.
+//
+// ok is false when no candidate separates the records into more than one
+// column, so the caller keeps its default separator.
+func (s *csvStructure) bestSeparator() (separator string, ok bool) {
+	if s.numRecords == 0 {
+		return "", false
+	}
+	var (
+		bestUniformity float64
+		bestColumns    int
+	)
+	for candidate, sep := range separatorCandidates {
+		// The most common number of columns of this candidate,
+		// more columns win a tie
+		var columns, records int
+		for c, r := range s.columnsPerRecord[candidate] {
+			if r > records || (r == records && c > columns) {
+				columns, records = c, r
+			}
+		}
+		if columns < 2 {
+			// The candidate doesn't separate anything in the typical record
+			continue
+		}
+		uniformity := float64(records) / float64(s.numRecords)
+		if uniformity > bestUniformity || (uniformity == bestUniformity && columns > bestColumns) {
+			bestUniformity, bestColumns = uniformity, columns
+			separator, ok = string(sep), true
+		}
+	}
+	return separator, ok
 }
 
 // parseSepHeaderLine parses Excel-style separator header lines and extracts the separator character.
@@ -383,7 +476,8 @@ func detectFormatAndSplitLines(data []byte, config *FormatDetectionConfig) (form
 //   - line: The header line bytes to parse
 //
 // Returns:
-//   - sep: The detected separator character, or empty string if not found
+//   - sep: The declared separator character, or empty string if the line is no
+//     header line or declares a character that can never be a separator
 //
 // Supported formats:
 //   - "sep=," (unquoted)
@@ -407,6 +501,9 @@ func parseSepHeaderLine(line []byte) (sep string) {
 	if !bytes.HasPrefix(line, []byte("sep=")) && !bytes.HasPrefix(line, []byte("SEP=")) {
 		return ""
 	}
+	if !validSeparator(line[4]) {
+		return ""
+	}
 	return string(line[4:5])
 }
 
@@ -416,20 +513,27 @@ func parseSepHeaderLine(line []byte) (sep string) {
 // properly handling quoted fields that may contain separators, newlines, or escaped quotes.
 // It supports multi-line fields where quoted content spans multiple lines.
 //
+// Quoting and escaping rules (RFC 4180):
+//   - Fields containing separator, newline, or quotes must be quoted
+//   - Quotes within quoted fields are escaped by doubling: "" represents "
+//   - A field beginning with an odd number of quotes and holding an odd total
+//     number of quotes is not closed within itself, so it was split by a
+//     separator or a newline within the quotes and is joined together again
+//   - The closing part of such a field may only begin with escaped quotes and
+//     must end with an unescaped quote, so an ordinary quoted field on a later
+//     line is not mistaken for it
+//   - A closing quote followed by unquoted characters does not end the field,
+//     its quotes are literal and are only unescaped
+//
 // Parameters:
 //   - lines: Slice of byte lines to parse
 //   - separator: Field separator as byte slice
 //   - newlineReplacement: String to replace newlines in quoted fields
 //
 // Returns:
-//   - rows: Parsed CSV rows as 2D slice of strings
+//   - rows: Parsed CSV rows as 2D slice of strings, lines joined into a
+//     multi-line field become nil entries so the line indices stay correct
 //   - err: Any error that occurred during parsing
-//
-// The function handles:
-// - Quoted fields containing separators or newlines
-// - Escaped quotes within quoted fields
-// - Multi-line fields (quoted content spanning multiple lines)
-// - Proper unescaping of quoted content
 //
 // Example:
 //
@@ -441,6 +545,14 @@ func parseSepHeaderLine(line []byte) (sep string) {
 func readLines(lines [][]byte, separator []byte, newlineReplacement string) (rows [][]string, err error) {
 	defer errs.WrapWithFuncParams(&err, lines, separator, newlineReplacement)
 
+	// noClosingFieldInLaterLines caches that no line after the last searched
+	// one holds a field closing an unterminated quoted field. The searches
+	// begin at ever later lines and lines are only emptied while parsing, so
+	// a search that reached the end without a match can never find one in a
+	// later line again. Without the cache every field of a file whose lines
+	// all begin an unterminated quoted field re-scans the whole rest.
+	noClosingFieldInLaterLines := false
+
 	rows = make([][]string, len(lines))
 	for lineIndex, line := range lines {
 		if len(line) == 0 {
@@ -448,129 +560,162 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 		}
 
 		fields := bytes.Split(line, separator)
+		// Line that the current field begins on. Joining a field across lines
+		// continues this line with the fields of the closing line, so every
+		// following field of the same row begins on that line and not on
+		// lineIndex anymore.
+		curLine := lineIndex
+		// noClosingFieldInRow caches the same for the fields of the current
+		// row that follow the searched one. A later field searches a subset
+		// of the fields already searched, and the fields are only rebuilt by
+		// a search that found a closing field, so once a search failed every
+		// later search of the same row fails too. Without the cache a single
+		// line whose fields all open an unterminated quoted field re-scans
+		// the rest of the line for every one of them, which is quadratic in
+		// the number of fields. A file with bare carriage return line
+		// endings is one such line, because those are not detected as a
+		// newline and the whole file stays a single line.
+		noClosingFieldInRow := false
 		for i := 0; i < len(fields); i++ {
 			field := fields[i]
-			if len(field) < 2 {
+			if len(field) == 0 {
 				continue
 			}
 
-			leftQuotes, rightQuotes := countQuotesLeftRight(field)
-			switch {
-			case leftQuotes == 0 && rightQuotes == 0:
-				// Unquoted field
+			// Only a field beginning with a quote needs quote handling.
+			// Every other field's quotes are literal and are just
+			// unescaped below, so counting them would be wasted work.
+			if leftQuotes := countQuotesLeft(field); leftQuotes > 0 {
+				totalQuotes := bytes.Count(field, []byte{'"'})
+				switch {
+				case totalQuotes == len(field) && len(field)%2 == 0:
+					// Field consists only of an even number of quotes, which is an escaped
+					// empty field `""`, an escaped quote `""""`, and so on.
+					// An odd number of quotes leaves one quote unescaped that opens a field
+					// continued after a separator or newline, which is handled by the case below.
+					// Remove outermost quotes
+					field = field[1 : len(field)-1]
 
-			case leftQuotes == 1 && rightQuotes == 1, // Quoted field
-				leftQuotes == 3 && rightQuotes == 1, // Quoted field beginning with escapted quote
-				leftQuotes == 1 && rightQuotes == 3, // Quoted field ending with escapted quote
-				leftQuotes == 3 && rightQuotes == 3, // Quoted field with escaped quotes inside
-				leftQuotes == 2 && rightQuotes == 2: // Field not quoted, but escaped quotes inside
-
-				// Remove outermost quotes
-				field = field[1 : len(field)-1]
-
-			case leftQuotes == 0 && rightQuotes >= 1:
-				// Field begins without a quote but ends with at least one.
-				// This is field internal quoting, no special handling needed
-
-			case leftQuotes >= 1 && rightQuotes == 0:
-				// Field begins with quote but does not end with one
-
-				if leftQuotes == 2 {
-					// Begins with two quotes wich is an escaped quote,
-					// but not with a tripple quote.
-					// No special handling needed, will be unescaped futher down
-
-				} else {
-
-					joinLineIndex := -1
-					if i == len(fields)-1 {
-						// When last field of the line begins with a quote but does not end with one
-						// then search following lines for a first field that ends with a quote
-						// which will be the right side of this field wrongly splitted into more
-						// lines because it contained newline characters.
-						// Newlines are allowed in quoted CSV fields.
-						for joinLineIndex = lineIndex + 1; joinLineIndex < len(lines); joinLineIndex++ {
-							joinLine := lines[joinLineIndex]
-							joinLineFields := bytes.Split(joinLine, separator)
-							if len(joinLineFields) > 0 && bytes.HasSuffix(joinLineFields[0], []byte{'"'}) {
-								// Found the line where the first field holds the closing quote for the multi-line field
+				case leftQuotes%2 == 1 && totalQuotes%2 == 1:
+					// An odd number of leading quotes opens a quoted field
+					// and an odd total number of quotes means that the field
+					// is not closed again within itself, so it was wrongly split
+					// by a separator or a newline inside the quoted field
+					// and has to be joined together again.
+					//
+					// Search for the field that closes the quoted field, first in
+					// the remaining fields of this line which were split off by a
+					// separator within the quotes, then in the fields of the
+					// following lines which were split off by a newline within the
+					// quotes. Newlines are allowed in quoted CSV fields.
+					// A field can be split by both, so the search must neither stop
+					// at the end of this line nor at the first field of a line.
+					var (
+						closeLine   = -1
+						closeField  = -1
+						closeFields [][]byte
+					)
+				findClosingField:
+					for l := curLine; l < len(lines); l++ {
+						lineFields, r := fields, i+1
+						if l > curLine {
+							if noClosingFieldInLaterLines {
 								break
+							}
+							lineFields, r = bytes.Split(lines[l], separator), 0
+						} else if noClosingFieldInRow {
+							continue
+						}
+						for ; r < len(lineFields); r++ {
+							if closesQuotedField(lineFields[r]) {
+								closeLine, closeField, closeFields = l, r, lineFields
+								break findClosingField
 							}
 						}
 					}
+					if closeLine == -1 {
+						// The fields following this one and every later line
+						// were searched without a match, so neither can hold
+						// a closing field for a later field of this row.
+						noClosingFieldInRow = true
+						noClosingFieldInLaterLines = true
+					}
 
-					if joinLineIndex > lineIndex && joinLineIndex < len(lines) {
-						// Join lines until including joinLineIndex as multi line field
-						// then empty those lines so line indices are still correct
+					switch {
+					case closeLine == curLine:
+						// Only fields of this line were split off by a separator,
+						// so join the fields [i..closeField] back together
+						field = bytes.Join(fields[i:closeField+1], separator)
+						// Remove quotes
+						field = field[1 : len(field)-1]
+						// Shift remaining slice fields over the ones joined into fields[i].
+						// This moves the whole tail of the row per join, so a row with
+						// many joins is quadratic in its number of fields. That only
+						// matters for a row with thousands of fields, which needs a file
+						// whose line endings are not detected as a newline, because a
+						// normal line holds too few fields for it to show. Removing it
+						// needs the row to be rebuilt through a write cursor instead of
+						// compacted in place.
+						copy(fields[i+1:], fields[closeField+1:])
+						fields = fields[:len(fields)-(closeField-i)]
 
-						joinLine := lines[joinLineIndex]
-						joinLineFields := bytes.Split(joinLine, separator)
-
-						// Join lines between lineIndex and joinLineIndex
-						for index := lineIndex + 1; index < joinLineIndex; index++ {
-							field = append(field, []byte(newlineReplacement)...)
-							field = append(field, lines[index]...)
+					case closeLine > curLine:
+						// The field was also split off by a newline, so join the
+						// remaining fields of this line, the lines in between and
+						// the fields of the closing line up to closeField
+						joined := bytes.Join(fields[i:], separator)
+						for l := curLine + 1; l < closeLine; l++ {
+							joined = append(joined, newlineReplacement...)
+							joined = append(joined, lines[l]...)
 						}
-
-						// Join first field of line joinLineIndex
-						field = append(field, []byte(newlineReplacement)...)
-						field = append(field, joinLineFields[0]...)
+						joined = append(joined, newlineReplacement...)
+						joined = append(joined, bytes.Join(closeFields[:closeField+1], separator)...)
 
 						// Remove quotes of joined field
-						if field[0] != '"' || field[len(field)-1] != '"' {
+						if joined[0] != '"' || joined[len(joined)-1] != '"' {
 							return nil, errs.New("should never happen: csv.Read is broken")
 						}
-						field = field[1 : len(field)-1]
+						field = joined[1 : len(joined)-1]
 
-						// Append following fields after first joined field of line joinLineIndex
-						fields = append(fields, joinLineFields[1:]...)
+						// Continue this line with the fields
+						// following the closing field
+						fields = append(fields[:i+1], closeFields[closeField+1:]...)
 
 						// Empty lines that have been joined
-						for i := lineIndex + 1; i <= joinLineIndex; i++ {
-							lines[i] = nil
+						// so line indices are still correct
+						for l := curLine + 1; l <= closeLine; l++ {
+							lines[l] = nil
 						}
 
-					} else {
+						// The fields following the closing field begin
+						// on the closing line, not on lineIndex
+						curLine = closeLine
 
-						// Begins with quote but does not end with one
-						// means that a separator was in a quoted field
-						// that has been wrongly splitted into multiple fields.
-						// Needs merging of fields:
-						for r := i + 1; r < len(fields); r++ {
-							// Find following field that does not begin
-							// with a quote, but ends with exactly one
-							rField := fields[r]
-							if len(rField) < 2 {
-								continue
-							}
-							rLeftQuotes, rRightQuotes := countQuotesLeftRight(rField)
-							var (
-								rLeftOK  = rLeftQuotes == 0 || rLeftQuotes == 2 // right field may only begin with an escaped quote
-								rRightOK = (leftQuotes == 1 && rRightQuotes == 1) || (leftQuotes == 1 && rRightQuotes == 3) || (leftQuotes == 3 && rRightQuotes == 1) || (leftQuotes == 3 && rRightQuotes == 3)
-							)
-							if rLeftOK && rRightOK {
-								// Join fields [i..j]
-								field = bytes.Join(fields[i:r+1], separator)
-								// Remove quotes
-								field = field[1 : len(field)-1]
-								// Shift remaining slice fields over the ones joined into fields[i]
-								copy(fields[i+1:], fields[r+1:])
-								fields = fields[:len(fields)-(r-i)]
-								break
-							}
-						}
+					case totalQuotes == len(field):
+						// Nothing to join the unterminated field with,
+						// so only its opening quote is removed and the
+						// remaining quotes are unescaped further down.
+						field = field[1:]
 					}
-				}
 
-			default:
-				return nil, errs.Errorf("can't handle CSV field `%s` in line `%s`", field, line)
-				// Examples for this error:
-				// /var/domonda-data/documents/39/d20/301/65394733/b7e967e7f98ec1e8/2019-01-03_09-46-50.435/doc.csv
-				// Double embedded fields:
-				// /var/domonda-data/documents/c9/727/af8/9cdf4afd/981ad4331d0fb6ca/2019-11-04_08-18-13.602/doc.csv
+				case leftQuotes%2 == 1 && field[len(field)-1] == '"':
+					// Quoted field that is closed again within itself.
+					// Remove outermost quotes
+					field = field[1 : len(field)-1]
+
+				default:
+					// Field is not quoted, or its closing quote is followed by
+					// unquoted characters, so all its quotes are literal
+					// and only have to be unescaped further down
+				}
 			}
 
-			fields[i] = bytes.ReplaceAll(field, []byte(`""`), []byte{'"'})
+			// bytes.ReplaceAll allocates a copy of the field even when
+			// there is nothing to replace, so only call it when there is.
+			if bytes.Contains(field, []byte(`""`)) {
+				field = bytes.ReplaceAll(field, []byte(`""`), []byte{'"'})
+			}
+			fields[i] = field
 		}
 
 		row := make([]string, len(fields))
@@ -592,7 +737,8 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 //   - str: The byte slice to analyze
 //
 // Returns:
-//   - int: The number of consecutive quotes from the start
+//   - int: The number of consecutive quotes from the start,
+//     or the length if the entire slice is quotes
 //
 // Example:
 //
@@ -616,7 +762,8 @@ func countQuotesLeft(str []byte) int {
 //   - str: The byte slice to analyze
 //
 // Returns:
-//   - int: The number of consecutive quotes from the end
+//   - int: The number of consecutive quotes from the end,
+//     or the length if the entire slice is quotes
 //
 // Example:
 //
@@ -631,55 +778,63 @@ func countQuotesRight(str []byte) int {
 	return len(str)
 }
 
-// countQuotesLeftRight counts consecutive quote characters from both ends of a string.
+// closesQuotedField reports whether field is the closing part of a quoted
+// field that was split by a separator or newline inside the quotes.
 //
-// This utility function counts consecutive double-quote characters from both the
-// beginning and end of a byte slice. It handles the special case where the entire
-// string consists of quotes by distributing them evenly between left and right counts.
-//
-// Parameters:
-//   - str: The byte slice to analyze
-//
-// Returns:
-//   - left: The number of consecutive quotes from the start
-//   - right: The number of consecutive quotes from the end
+// The closing part may only begin with escaped quotes and must end with an
+// unescaped closing quote. Requiring both is what distinguishes it from an
+// ordinary quoted field like `"value"`, which must not be mistaken for the
+// closing part of an unterminated field further up.
 //
 // Example:
 //
-//	left, right := countQuotesLeftRight([]byte("\"\"\"text\"\""))
-//	// Returns left=3, right=2
-//
-//	left, right := countQuotesLeftRight([]byte("\"\"\"\"\""))
-//	// Returns left=3, right=2 (even distribution)
-func countQuotesLeftRight(str []byte) (left, right int) {
-	left = countQuotesLeft(str)
-	right = countQuotesRight(str)
-
-	if left == len(str) {
-		left = (len(str) + 1) / 2
-		right = len(str) - left
+//	closesQuotedField([]byte(`value"`))    // Returns: true
+//	closesQuotedField([]byte(`""value"`))  // Returns: true
+//	closesQuotedField([]byte(`"`))         // Returns: true
+//	closesQuotedField([]byte(`"value"`))   // Returns: false (a complete field)
+//	closesQuotedField([]byte(`value`))     // Returns: false (no closing quote)
+func closesQuotedField(field []byte) bool {
+	leftQuotes := countQuotesLeft(field)
+	if leftQuotes == len(field) {
+		// Field consists only of quotes, so it closes the
+		// quoted field if one quote is left unescaped
+		return leftQuotes%2 == 1
 	}
-
-	return left, right
+	// A single leading quote can never occur inside a quoted field
+	return leftQuotes%2 == 0 && countQuotesRight(field)%2 == 1
 }
 
-// sanitizeUTF8 cleans UTF-8 data by replacing problematic characters with regular spaces.
+// sanitizeUTF8 replaces every byte that is not valid UTF-8, every U+FFFD
+// replacement character, and every no-break space with a plain space,
+// and returns the result as a newly allocated slice.
 //
-// This function processes UTF-8 encoded data and replaces common problematic characters
-// that can cause issues in CSV parsing or display. It specifically handles:
-// - Invalid UTF-8 replacement characters (�)
-// - Non-breaking spaces (U+00A0) which can cause parsing issues
+// Invalid bytes are replaced one by one, so a two byte sequence becomes two
+// spaces. The result is always valid UTF-8, so the parser and everything
+// downstream can treat the data as text without checking it again.
+//
+// A no-break space is replaced because it reads as a space but is not one to
+// code that trims or compares field values, and spreadsheet exports are full
+// of them. Note that this also changes field values that legitimately contain
+// one.
+//
+// Sanitizing hides a failed encoding detection instead of reporting it: data
+// decoded with the wrong encoding loses its undecodable bytes to spaces rather
+// than raising an error, so `Müller` in Windows 1252 read as UTF-8 becomes
+// `M ller`. Both callers sanitize directly after decoding, so a caller that
+// has to know whether the encoding was right must check the decoded data
+// itself.
 //
 // Parameters:
-//   - str: The UTF-8 byte slice to sanitize
+//   - str: The byte slice to sanitize
 //
 // Returns:
-//   - []byte: The sanitized UTF-8 byte slice with problematic characters replaced
+//   - []byte: The sanitized and always valid UTF-8 byte slice
 //
 // Example:
 //
-//	clean := sanitizeUTF8([]byte("Hello\u00a0World�"))
-//	// Returns []byte("Hello World ")
+//	sanitizeUTF8([]byte("Jänner"))        // Returns: "Jänner"
+//	sanitizeUTF8([]byte("a\u00a0b"))      // Returns: "a b"
+//	sanitizeUTF8([]byte{'M', 0xfc, 'l'})  // Returns: "M l"
 func sanitizeUTF8(str []byte) []byte {
 	return bytes.Map(
 		func(r rune) rune {
