@@ -42,7 +42,10 @@ CSV parsing and format detection, ported from `go-retable`'s `csvtable` package.
 - A table whose rows all have a single column is kept instead of being emptied
   by `SetRowsWithNonUniformColumnsNil`.
 - Files whose line endings are not recognised no longer take quadratic time to
-  parse. A 3.1 MB file of this shape went from 10.6 s to 42 ms.
+  parse. Such a file is read as one very long row, and both the search for the
+  end of a quoted value and the joining of one grew with the square of the
+  number of fields. A 3 MB file of this shape went from 10.6 s to 42 ms when no
+  value closes its quote, and from 3.5 s to 42 ms when they do.
 
 ### Changed
 

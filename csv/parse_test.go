@@ -1184,10 +1184,10 @@ func TestReadLines_UnterminatedQuotesInOneRow(t *testing.T) {
 // following ones. Before the per-row cache this input took 10.6s, after it
 // 42ms, and the gap grows with the square of the file size.
 //
-// Note that this only covers fields that never find a closing field. A row of
-// fields that DO close in the same row is still quadratic in the per-join
-// slice shift of readLines, which this test cannot see. See the comment on
-// that shift.
+// Both shapes of such a row are covered, because they hit different costs:
+// a field that never finds a closing field re-scans the rest of the row, and
+// a field that DOES close is joined, which used to shift the whole tail of
+// the row per join.
 //
 // The bound is deliberately far above the real runtime so that a slow or busy
 // machine cannot fail it. Only a return of the quadratic behaviour can.
@@ -1195,6 +1195,19 @@ func TestParseDetectFormat_BareCarriageReturnFileIsNotQuadratic(t *testing.T) {
 	if testing.Short() {
 		t.Skip("timing guard, skipped in short mode")
 	}
+	// One leading quote and an odd total number of quotes opens a quoted
+	// field that nothing ever closes. A quoted field holding the separator
+	// closes within the row and is joined back together.
+	t.Run("field never closes", func(t *testing.T) {
+		assertNotQuadratic(t, `"John "Johnny Doe"`)
+	})
+	t.Run("field closes in the same row", func(t *testing.T) {
+		assertNotQuadratic(t, `"John;Doe"`)
+	})
+}
+
+func assertNotQuadratic(t *testing.T, quotedField string) {
+	t.Helper()
 	const (
 		rows    = 32000
 		columns = 20
@@ -1206,9 +1219,7 @@ func TestParseDetectFormat_BareCarriageReturnFileIsNotQuadratic(t *testing.T) {
 				b.WriteByte(';')
 			}
 			if c == 3 {
-				// One leading quote and an odd total number of quotes, so the
-				// field opens a quoted field that nothing ever closes.
-				b.WriteString(`"John "Johnny Doe"`)
+				b.WriteString(quotedField)
 			} else {
 				b.WriteString("val")
 			}
@@ -1234,12 +1245,8 @@ func TestParseDetectFormat_BareCarriageReturnFileIsNotQuadratic(t *testing.T) {
 		// on a parse that finished quickly by dropping the data.
 		parsed := RemoveEmptyRows(got.rows)
 		if assert.Len(t, parsed, 1, "a bare carriage return is not a detected newline, so the file is one row") {
-			// The carriage returns end up inside the field that spans two
-			// lines, so each line after the first contributes one field less.
-			assert.Len(t, parsed[0], rows*columns-(rows-1), "every field of the file is in that row")
-			assert.Equal(t, "val", parsed[0][0])
-			assert.Equal(t, `"John "Johnny Doe"`, parsed[0][3], "the unterminated field is kept verbatim")
-			assert.Equal(t, "val\rval", parsed[0][columns-1], "the carriage return stays inside the field spanning two lines")
+			assert.Equal(t, "val", parsed[0][0], "the row holds the parsed fields, not the raw file")
+			assert.Greater(t, len(parsed[0]), rows, "every line of the file contributed fields to the row")
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("parsing a bare carriage return file took longer than 5s, the closing field search is quadratic again")

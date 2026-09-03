@@ -588,16 +588,17 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 		// endings is one such line, because those are not detected as a
 		// newline and the whole file stays a single line.
 		noClosingFieldInRow := false
+		// The row is built forward instead of the joined fields being cut out
+		// of the split line, because compacting in place moves the whole tail
+		// of the row per join, which is quadratic in the number of fields.
+		row := make([]string, 0, len(fields))
 		for i := 0; i < len(fields); i++ {
 			field := fields[i]
-			if len(field) == 0 {
-				continue
-			}
 
 			// Only a field beginning with a quote needs quote handling.
-			// Every other field's quotes are literal and are just
-			// unescaped below, so counting them would be wasted work.
-			if leftQuotes := countQuotesLeft(field); leftQuotes > 0 {
+			// An empty field and every other field's quotes are literal and
+			// are just unescaped below, so counting them would be wasted work.
+			if leftQuotes := countQuotesLeft(field); len(field) > 0 && leftQuotes > 0 {
 				totalQuotes := bytes.Count(field, []byte{'"'})
 				switch {
 				case totalQuotes == len(field) && len(field)%2 == 0:
@@ -660,16 +661,10 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 						field = bytes.Join(fields[i:closeField+1], separator)
 						// Remove quotes
 						field = field[1 : len(field)-1]
-						// Shift remaining slice fields over the ones joined into fields[i].
-						// This moves the whole tail of the row per join, so a row with
-						// many joins is quadratic in its number of fields. That only
-						// matters for a row with thousands of fields, which needs a file
-						// whose line endings are not detected as a newline, because a
-						// normal line holds too few fields for it to show. Removing it
-						// needs the row to be rebuilt through a write cursor instead of
-						// compacted in place.
-						copy(fields[i+1:], fields[closeField+1:])
-						fields = fields[:len(fields)-(closeField-i)]
+						// Continue after the fields joined into this one. They are
+						// skipped rather than cut out of the slice, so joining costs
+						// nothing beyond the join itself.
+						i = closeField
 
 					case closeLine > curLine:
 						// The field was also split off by a newline, so join the
@@ -689,9 +684,9 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 						}
 						field = joined[1 : len(joined)-1]
 
-						// Continue this line with the fields
-						// following the closing field
-						fields = append(fields[:i+1], closeFields[closeField+1:]...)
+						// Continue this row with the fields of the closing
+						// line that follow the closing field
+						fields, i = closeFields, closeField
 
 						// Empty lines that have been joined
 						// so line indices are still correct
@@ -727,13 +722,9 @@ func readLines(lines [][]byte, separator []byte, newlineReplacement string) (row
 			if bytes.Contains(field, []byte(`""`)) {
 				field = bytes.ReplaceAll(field, []byte(`""`), []byte{'"'})
 			}
-			fields[i] = field
+			row = append(row, string(field))
 		}
 
-		row := make([]string, len(fields))
-		for i := range fields {
-			row[i] = string(fields[i])
-		}
 		rows[lineIndex] = row
 	}
 
