@@ -1199,14 +1199,17 @@ func TestParseDetectFormat_BareCarriageReturnFileIsNotQuadratic(t *testing.T) {
 	// field that nothing ever closes. A quoted field holding the separator
 	// closes within the row and is joined back together.
 	t.Run("field never closes", func(t *testing.T) {
-		assertNotQuadratic(t, `"John "Johnny Doe"`)
+		// An unterminated field is kept verbatim, quote and all.
+		assertNotQuadratic(t, `"John "Johnny Doe"`, `"John "Johnny Doe"`)
 	})
 	t.Run("field closes in the same row", func(t *testing.T) {
-		assertNotQuadratic(t, `"John;Doe"`)
+		// The separator inside the quotes split the field, so it is joined
+		// back together and its outer quotes are removed.
+		assertNotQuadratic(t, `"John;Doe"`, `John;Doe`)
 	})
 }
 
-func assertNotQuadratic(t *testing.T, quotedField string) {
+func assertNotQuadratic(t *testing.T, quotedField, wantQuotedField string) {
 	t.Helper()
 	const (
 		rows    = 32000
@@ -1245,8 +1248,15 @@ func assertNotQuadratic(t *testing.T, quotedField string) {
 		// on a parse that finished quickly by dropping the data.
 		parsed := RemoveEmptyRows(got.rows)
 		if assert.Len(t, parsed, 1, "a bare carriage return is not a detected newline, so the file is one row") {
+			// Every line contributes its columns, and the carriage return
+			// joins the last field of a line with the first of the next one,
+			// so every line after the first contributes one field less.
+			// Asserting the exact count is what keeps the guard from passing
+			// on a parse that finished quickly by losing most of the fields.
+			assert.Len(t, parsed[0], rows*columns-(rows-1), "every field of the file is in the row")
 			assert.Equal(t, "val", parsed[0][0], "the row holds the parsed fields, not the raw file")
-			assert.Greater(t, len(parsed[0]), rows, "every line of the file contributed fields to the row")
+			assert.Equal(t, wantQuotedField, parsed[0][3], "the quoted field")
+			assert.Equal(t, "val\rval", parsed[0][columns-1], "the carriage return stays inside the field spanning two lines")
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("parsing a bare carriage return file took longer than 5s, the closing field search is quadratic again")
