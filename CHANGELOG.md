@@ -64,8 +64,12 @@ before upgrading:
   configurations that select this modifier by name change behaviour on upgrade.
 - Detection on empty input returns `Separator: ","` instead of `""`, so an empty
   separator no longer signals "no table found" — check the number of rows.
+
+### Documentation
+
 - The README describes what format detection actually inspects: the encodings it
-  tries, the separator candidates, and the line endings it recognises.
+  tries, the separator candidates, the line endings it recognises, and how the
+  separator is chosen when a table has single column header or trailer lines.
 
 ### Removed
 
