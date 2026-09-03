@@ -265,8 +265,14 @@ rows, format, err := csv.ParseDetectFormat(data, config)
 - **Line endings**: `\n`, `\r\n`, and `\n\r` (a bare `\r` is not treated as a line ending)
 
 Separators and newlines inside quoted fields are ignored by the detection, so a quoted field
-cannot outvote the real structure of the data. An Excel style `sep=,` first line declares the
-separator explicitly and wins over the detection.
+cannot outvote the real structure of the data. Records that a candidate does not split at all
+are left out of its column count unless it splits none of them, so the single column header and
+trailer lines of a table cannot outvote its data rows. An Excel style `sep=,` first line declares
+the separator explicitly and wins over the detection.
+
+## Changelog
+
+Changes are documented in [CHANGELOG.md](CHANGELOG.md).
 
 ## Migration to go-retable
 
