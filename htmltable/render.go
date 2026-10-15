@@ -41,7 +41,7 @@ type Renderer struct {
 //
 // Example:
 //
-//	renderer := htmltable.NewRenderer("Employee Data", strfmt.NewEnglishFormatConfig())
+//	renderer := htmltable.NewRenderer("Employee Data", strfmt.NewFormatConfig())
 func NewRenderer(caption string, config *strfmt.FormatConfig) *Renderer {
 	r := &Renderer{}
 	//#nosec G404 -- weak random number OK
@@ -78,7 +78,12 @@ func NewRenderer(caption string, config *strfmt.FormatConfig) *Renderer {
 //	var employees []Employee
 //	err := htmltable.Render(writer, employees, "Employee List", true, columnMapper)
 func Render(writer io.Writer, structSlice any, caption string, renderHeaderRow bool, columnMapper structtable.ColumnMapper) error {
-	renderer := NewRenderer(caption, strfmt.NewEnglishFormatConfig())
+	config := strfmt.NewFormatConfig()
+	config.Date = "02/01/2006"
+	config.Time = "02/01/2006 15:04:05 MST"
+	config.True = "yes"
+	config.False = "no"
+	renderer := NewRenderer(caption, config)
 	return structtable.RenderTo(writer, renderer, structSlice, renderHeaderRow, columnMapper)
 }
 
