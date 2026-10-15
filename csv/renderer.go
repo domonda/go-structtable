@@ -44,7 +44,7 @@ type Renderer struct {
 //
 // Example:
 //
-//	renderer := csv.NewRenderer(strfmt.NewEnglishFormatConfig())
+//	renderer := csv.NewRenderer(strfmt.NewFormatConfig())
 //	renderer = renderer.WithDelimiter(",").WithQuoteAllFields(true)
 func NewRenderer(config *strfmt.FormatConfig) *Renderer {
 	csv := &Renderer{
