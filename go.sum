@@ -15,8 +15,8 @@ github.com/domonda/go-errs v1.0.4 h1:oX7WWrAFbRTd5D+vSQyKvvv97mR7SKNfLK8CEoLInxA
 github.com/domonda/go-errs v1.0.4/go.mod h1:zt5V57wkHr3YNuCGemVABL/OUa0zFbixzr5CXiKYp6w=
 github.com/domonda/go-pretty v1.0.0 h1:58OcAmEgcYEOuMQRXtC0jAndPKqHfV3TVZUttWKnRc4=
 github.com/domonda/go-pretty v1.0.0/go.mod h1:O05JaeEezfZ2ian+t10+JrAZFKadSIsqWdukNtOPEzI=
-github.com/domonda/go-types v1.0.0-beta.1 h1:U995hKyL1PCq8cF1qo8zvOnD82aJt5j79mwmLuPUtZk=
-github.com/domonda/go-types v1.0.0-beta.1/go.mod h1:jAST90xBQWqZVFa+UKBpEl6vZW8YLqResQntdL/TNpM=
+github.com/domonda/go-types v1.0.0-beta.2 h1:Gnmxymnm656li37uqPyClsCrW6x08AaKveupNJ48OhM=
+github.com/domonda/go-types v1.0.0-beta.2/go.mod h1:jAST90xBQWqZVFa+UKBpEl6vZW8YLqResQntdL/TNpM=
 github.com/fatih/color v1.19.0 h1:Zp3PiM21/9Ld6FzSKyL5c/BULoe/ONr9KlbYVOfG8+w=
 github.com/fatih/color v1.19.0/go.mod h1:zNk67I0ZUT1bEGsSGyCZYZNrHuTkJJB+r6Q9VuMi0LE=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=

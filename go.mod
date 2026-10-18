@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/domonda/go-errs v1.0.4
-	github.com/domonda/go-types v1.0.0-beta.1
+	github.com/domonda/go-types v1.0.0-beta.2
 	github.com/stretchr/testify v1.12.1
 	github.com/tealeg/xlsx/v3 v3.3.13
 	github.com/ungerik/go-fs v0.1.0
