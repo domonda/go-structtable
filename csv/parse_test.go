@@ -2,7 +2,6 @@ package csv
 
 import (
 	"bytes"
-	"context"
 	stdcsv "encoding/csv"
 	"strconv"
 	"strings"
@@ -305,16 +304,17 @@ func TestParsePrivateStrings(t *testing.T) {
 	}
 
 	err := privateTestDataDir.ListDir(
+		t.Context(),
 		func(jsonFile fs.File) error {
 			csvFile := jsonFile.TrimExt() + ".csv"
 			t.Run(csvFile.Name(), func(t *testing.T) {
 				require.True(t, csvFile.Exists())
 
 				var expected Expected
-				err := jsonFile.ReadJSON(context.Background(), &expected)
+				err := jsonFile.ReadJSON(t.Context(), &expected)
 				assert.NoError(t, err, "ReadJSON")
 
-				rows, format, err := ParseFileDetectFormat(context.Background(), csvFile, NewFormatDetectionConfig())
+				rows, format, err := ParseFileDetectFormat(t.Context(), csvFile, NewFormatDetectionConfig())
 				assert.NoError(t, err, "ParseFileDetectFormat")
 				rows = RemoveEmptyRows(rows)
 
@@ -1068,12 +1068,12 @@ func TestParseWithFormat_NonUTF8Encoding(t *testing.T) {
 // content and passes on a read error instead of parsing no data at all.
 func TestParseFileWithFormat(t *testing.T) {
 	t.Run("file content", func(t *testing.T) {
-		rows, err := ParseFileWithFormat(context.Background(), fs.NewMemFile("test.csv", []byte("A;B\r\nC;D\r\n")), NewFormat(";"))
+		rows, err := ParseFileWithFormat(t.Context(), fs.NewMemFile("test.csv", []byte("A;B\r\nC;D\r\n")), NewFormat(";"))
 		assert.NoError(t, err)
 		assert.Equal(t, [][]string{{"A", "B"}, {"C", "D"}}, RemoveEmptyRows(rows))
 	})
 	t.Run("read error", func(t *testing.T) {
-		_, err := ParseFileWithFormat(context.Background(), fs.File("/no/such/dir/no-such-file.csv"), NewFormat(";"))
+		_, err := ParseFileWithFormat(t.Context(), fs.File("/no/such/dir/no-such-file.csv"), NewFormat(";"))
 		assert.Error(t, err)
 	})
 }
@@ -1081,7 +1081,7 @@ func TestParseFileWithFormat(t *testing.T) {
 // TestParseFileDetectFormat_ReadError verifies that a read error is passed on
 // instead of detecting a format from no data at all.
 func TestParseFileDetectFormat_ReadError(t *testing.T) {
-	_, format, err := ParseFileDetectFormat(context.Background(), fs.File("/no/such/dir/no-such-file.csv"), nil)
+	_, format, err := ParseFileDetectFormat(t.Context(), fs.File("/no/such/dir/no-such-file.csv"), nil)
 	assert.Error(t, err)
 	assert.Nil(t, format)
 }

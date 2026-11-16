@@ -1,6 +1,8 @@
 package structtable
 
 import (
+	"context"
+	"errors"
 	"io"
 	"reflect"
 
@@ -124,6 +126,7 @@ func RenderBytes(renderer Renderer, structSlice any, renderTitleRow bool, column
 // It renders the struct slice and immediately writes the result to the provided file.
 //
 // Parameters:
+//   - ctx: Cancels or times out writing the file
 //   - file: The fs.File to write the rendered table to
 //   - renderer: The Renderer implementation to use for output formatting
 //   - structSlice: The slice of structs to render
@@ -132,7 +135,7 @@ func RenderBytes(renderer Renderer, structSlice any, renderTitleRow bool, column
 //
 // Returns:
 //   - err: Any error that occurred during rendering or writing
-func RenderFile(file fs.File, renderer Renderer, structSlice any, renderTitleRow bool, columnMapper ColumnMapper) error {
+func RenderFile(ctx context.Context, file fs.File, renderer Renderer, structSlice any, renderTitleRow bool, columnMapper ColumnMapper) error {
 	err := Render(renderer, structSlice, renderTitleRow, columnMapper)
 	if err != nil {
 		return err
@@ -141,5 +144,23 @@ func RenderFile(file fs.File, renderer Renderer, structSlice any, renderTitleRow
 	if err != nil {
 		return err
 	}
-	return file.WriteAll(data)
+	return file.WriteAll(ctx, data)
+}
+
+// closeOrAbortWriter finishes writing to a writer opened with fs.File.OpenWriter
+// after the write returned writeErr.
+//
+// Without writeErr the writer is closed and the error of Close is returned,
+// because writers of uploads commit the data in Close.
+// After a failed write a writer implementing fs.WriteAborter is aborted
+// instead of closed, so no partial data replaces the file,
+// and writeErr is returned joined with the error of Abort or Close.
+func closeOrAbortWriter(writer io.WriteCloser, writeErr error) error {
+	if writeErr == nil {
+		return writer.Close()
+	}
+	if aborter, ok := writer.(fs.WriteAborter); ok {
+		return errors.Join(writeErr, aborter.Abort())
+	}
+	return errors.Join(writeErr, writer.Close())
 }

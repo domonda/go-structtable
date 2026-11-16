@@ -4,16 +4,18 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-This module has no `VERSION` file and is consumed through Go module versions,
-so changes are listed under `[Unreleased]` until they are tagged.
+Releases are tagged with the Go module version in the `VERSION` file;
+headings here leave out its `v` prefix.
 
 > ⚠️ This package is deprecated in favour of
 > [`github.com/domonda/go-retable`](https://github.com/domonda/go-retable).
 > Entries here are fixes for consumers still on `go-structtable`.
 
-## [Unreleased]
+## [0.1.0] - 2026-11-16
 
-CSV parsing and format detection, ported from `go-retable`'s `csvtable` package.
+The first tagged release. Earlier commits were only available as Go
+pseudo-versions. It brings the CSV parsing and format detection fixes ported
+from `go-retable`'s `csvtable` package and moves to go-fs v1.
 
 ### Fixed
 
@@ -46,6 +48,18 @@ CSV parsing and format detection, ported from `go-retable`'s `csvtable` package.
   end of a quoted value and the joining of one grew with the square of the
   number of fields. A 3 MB file of this shape went from 10.6 s to 42 ms when no
   value closes its quote, and from 3.5 s to 42 ms when they do.
+- `WriteResultFile` of the text, HTML and Excel renderers returns the error from
+  closing the file. A go-fs file system that uploads or flushes on close used to
+  report success even when that final write failed. When writing fails, a file
+  writer that can abort, like an upload, is aborted instead of closed, so the
+  partial output no longer replaces the existing file.
+- Writing the result of a text or HTML renderer no longer consumes it. A second
+  `WriteResultTo` or `WriteResultFile` call, like a retry after a failed upload,
+  used to write an empty file and report success, and `Result` returned nothing
+  afterwards.
+- `WriteResultTo` and `WriteResultFile` of the HTML renderer write the closing
+  `</tbody></table>` tags. Files written this way used to end without them, and
+  every `Result` call appended them once more.
 
 ### Changed
 
@@ -64,6 +78,44 @@ before upgrading:
   configurations that select this modifier by name change behaviour on upgrade.
 - Detection on empty input returns `Separator: ","` instead of `""`, so an empty
   separator no longer signals "no table found" — check the number of rows.
+- The text and HTML renderers keep their rendered data when it is written.
+  Code that renders rows, calls `WriteResultTo`, renders more rows and calls
+  `WriteResultTo` again now writes the first rows twice; render all rows before
+  writing, or use a new renderer for each batch.
+- The text and HTML renderers render their closing content, like the HTML
+  `</tbody></table>`, on the first `Result`, `WriteResultTo` or
+  `WriteResultFile` call only. A second table rendered on the same HTML renderer
+  after that call is left without closing tags; use a new renderer per table.
+
+### Breaking
+
+- `github.com/ungerik/go-fs` goes from `v0.1.0` to `v1.0.0-rc.8`, a release
+  candidate. v0 and v1 share one import path, so Go's minimal version selection
+  raises every module that depends on `go-structtable` to `v1.0.0-rc.8` as well,
+  and its own go-fs calls stop compiling where v1 changed them. The changes most
+  code hits: `ReadAll`, `ReadAllString`, `ContentHash`, `WriteAll`,
+  `WriteAllString` and the `ListDir*` methods take a `context.Context` as first
+  parameter, and their `*Context` twins (`ReadAllContext`, `WriteAllContext`,
+  `ListDirContext` …) are removed. `fs.ReadSeekCloser` becomes
+  `fs.ReadAtSeekCloser` and `File.URL()` becomes `File.URI()`. The full list is
+  in go-fs's
+  [`docs/MIGRATION_v1.md`](https://github.com/ungerik/go-fs/blob/master/docs/MIGRATION_v1.md).
+  This module will move to go-fs `v1.0.0` once it is tagged.
+- `RenderFile`, `csv.NewReaderFromFile` and `excel.NewReader` take a
+  `context.Context` as first parameter that cancels or times out the file read
+  or write, like `csv.ParseFileDetectFormat` and `csv.ParseFileWithFormat`.
+  `excel.NewReader` reads the whole file into memory before unzipping it.
+- `github.com/domonda/go-errs` goes from `v1.0.4` to `v1.3.1`. Errors returned by
+  this module cache their message on the first `Error()` call, so two otherwise
+  identical errors are no longer `reflect.DeepEqual` (testify's `assert.Equal`)
+  when only one of them has rendered its message; compare with `errors.Is` or
+  by message instead. A panic recovered by `csv.ParseDetectFormat` or
+  `csv.ParseWithFormat` comes back as an error of an unexported type with the
+  same `Error()` text and `Unwrap()` result as before.
+
+### Dependencies
+
+- Indirect dependencies are updated to their latest versions.
 
 ### Documentation
 
