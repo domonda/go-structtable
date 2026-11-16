@@ -65,6 +65,15 @@ before upgrading:
 - Detection on empty input returns `Separator: ","` instead of `""`, so an empty
   separator no longer signals "no table found" — check the number of rows.
 
+### Dependencies
+
+- `github.com/ungerik/go-fs` goes from `v0.1.0` to `v1.0.0-rc.8`. The `fs.File`,
+  `fs.FileReader` and `fs.Permissions` types in this module's API now come from
+  that version, so callers must upgrade go-fs alongside this module.
+  `RenderFile` keeps its signature and writes with `context.Background()`.
+- `github.com/domonda/go-errs` goes from `v1.0.4` to `v1.3.1`; indirect
+  dependencies are updated to their latest versions.
+
 ### Documentation
 
 - The README describes what format detection actually inspects: the encodings it

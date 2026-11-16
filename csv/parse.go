@@ -86,7 +86,7 @@ func ParseDetectFormat(data []byte, configOrNil *FormatDetectionConfig) (rows []
 func ParseFileDetectFormat(ctx context.Context, csvFile fs.FileReader, configOrNil *FormatDetectionConfig) (rows [][]string, format *Format, err error) {
 	defer errs.WrapWithFuncParams(&err, ctx, csvFile, configOrNil)
 
-	data, err := csvFile.ReadAllContext(ctx)
+	data, err := csvFile.ReadAll(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -175,7 +175,7 @@ func ParseWithFormat(data []byte, format *Format) (rows [][]string, err error) {
 func ParseFileWithFormat(ctx context.Context, csvFile fs.FileReader, format *Format) (rows [][]string, err error) {
 	defer errs.WrapWithFuncParams(&err, ctx, csvFile, format)
 
-	data, err := csvFile.ReadAllContext(ctx)
+	data, err := csvFile.ReadAll(ctx)
 	if err != nil {
 		return nil, err
 	}

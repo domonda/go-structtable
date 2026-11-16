@@ -305,16 +305,17 @@ func TestParsePrivateStrings(t *testing.T) {
 	}
 
 	err := privateTestDataDir.ListDir(
+		t.Context(),
 		func(jsonFile fs.File) error {
 			csvFile := jsonFile.TrimExt() + ".csv"
 			t.Run(csvFile.Name(), func(t *testing.T) {
 				require.True(t, csvFile.Exists())
 
 				var expected Expected
-				err := jsonFile.ReadJSON(context.Background(), &expected)
+				err := jsonFile.ReadJSON(t.Context(), &expected)
 				assert.NoError(t, err, "ReadJSON")
 
-				rows, format, err := ParseFileDetectFormat(context.Background(), csvFile, NewFormatDetectionConfig())
+				rows, format, err := ParseFileDetectFormat(t.Context(), csvFile, NewFormatDetectionConfig())
 				assert.NoError(t, err, "ParseFileDetectFormat")
 				rows = RemoveEmptyRows(rows)
 
