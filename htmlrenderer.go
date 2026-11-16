@@ -60,6 +60,7 @@ type HTMLRenderer struct {
 	TableConfig *HTMLTableConfig
 	txtConfig   *strfmt.FormatConfig
 	buf         bytes.Buffer
+	endWritten  bool
 }
 
 // NewHTMLRenderer creates a new HTMLRenderer instance.
@@ -173,10 +174,15 @@ func (htm *HTMLRenderer) RenderRow(columnValues []reflect.Value) error {
 //
 // This method implements the Renderer interface and returns the complete
 // HTML table as a byte slice, including the closing table tag.
+// The closing tag is rendered on the first call only,
+// so every call returns the same result.
 func (htm *HTMLRenderer) Result() ([]byte, error) {
-	_, err := htm.buf.WriteString("</tbody></table>\n")
-	if err != nil {
-		return nil, err
+	if !htm.endWritten {
+		err := htm.write("</tbody></table>\n")
+		if err != nil {
+			return nil, err
+		}
+		htm.endWritten = true
 	}
 	return htm.buf.Bytes(), nil
 }
@@ -184,9 +190,15 @@ func (htm *HTMLRenderer) Result() ([]byte, error) {
 // WriteResultTo writes the rendered table data to the given writer.
 //
 // This method implements the Renderer interface and writes the complete
-// HTML table to the provided writer.
+// HTML table as returned by Result, including the closing table tag,
+// to the provided writer.
+// The rendered data is kept, so it can be written again.
 func (htm *HTMLRenderer) WriteResultTo(writer io.Writer) error {
-	_, err := htm.buf.WriteTo(writer)
+	data, err := htm.Result()
+	if err != nil {
+		return err
+	}
+	_, err = writer.Write(data)
 	return err
 }
 

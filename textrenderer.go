@@ -35,6 +35,7 @@ type TextRenderer struct {
 	config       *strfmt.FormatConfig
 	buf          bytes.Buffer
 	beginWritten bool
+	endWritten   bool
 }
 
 // NewTextRenderer creates a new TextRenderer instance.
@@ -108,10 +109,15 @@ func (txt *TextRenderer) RenderRow(columnValues []reflect.Value) error {
 //
 // This method implements the Renderer interface and returns the complete
 // text table as a byte slice, including any post-table content.
+// The post-table content is rendered on the first call only,
+// so every call returns the same result.
 func (txt *TextRenderer) Result() ([]byte, error) {
-	err := txt.format.RenderEndTableText(&txt.buf)
-	if err != nil {
-		return nil, err
+	if !txt.endWritten {
+		err := txt.format.RenderEndTableText(&txt.buf)
+		if err != nil {
+			return nil, err
+		}
+		txt.endWritten = true
 	}
 	return txt.buf.Bytes(), nil
 }
@@ -119,9 +125,14 @@ func (txt *TextRenderer) Result() ([]byte, error) {
 // WriteResultTo writes the rendered table data to the given writer.
 //
 // This method implements the Renderer interface and writes the complete
-// text table to the provided writer.
+// text table as returned by Result to the provided writer.
+// The rendered data is kept, so it can be written again.
 func (txt *TextRenderer) WriteResultTo(writer io.Writer) error {
-	_, err := txt.buf.WriteTo(writer)
+	data, err := txt.Result()
+	if err != nil {
+		return err
+	}
+	_, err = writer.Write(data)
 	return err
 }
 
