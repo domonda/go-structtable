@@ -1,6 +1,7 @@
 package csv
 
 import (
+	"context"
 	"io"
 	"reflect"
 
@@ -131,6 +132,7 @@ func NewReaderFromRows(rows [][]string, format *Format, newlineReplacement strin
 // to the specified format and modifiers are applied.
 //
 // Parameters:
+//   - ctx: Cancels or times out reading the file
 //   - file: The file reader containing CSV data
 //   - format: The CSV format configuration
 //   - newlineReplacement: String to replace newlines in quoted fields
@@ -145,17 +147,21 @@ func NewReaderFromRows(rows [][]string, format *Format, newlineReplacement strin
 // Example:
 //
 //	file := fs.NewFile("data.csv")
-//	reader, err := csv.NewReaderFromFile(file, format, "\n", modifiers, columns)
-func NewReaderFromFile(file fs.FileReader, format *Format, newlineReplacement string, modifiers ModifierList, columns []ColumnMapping, scanConfig ...*strfmt.ScanConfig) (r *Reader, err error) {
+//	reader, err := csv.NewReaderFromFile(ctx, file, format, "\n", modifiers, columns)
+func NewReaderFromFile(ctx context.Context, file fs.FileReader, format *Format, newlineReplacement string, modifiers ModifierList, columns []ColumnMapping, scanConfig ...*strfmt.ScanConfig) (r *Reader, err error) {
 	defer errs.WrapWithFuncParams(&err, file, format, newlineReplacement, modifiers, columns, scanConfig)
 
-	reader, err := file.OpenReader()
+	data, err := file.ReadAll(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
 
-	return NewReader(reader, format, newlineReplacement, modifiers, columns, scanConfig...)
+	rows, err := ParseWithFormat(data, format)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewReaderFromRows(rows, format, newlineReplacement, modifiers, columns, scanConfig...)
 }
 
 // NumRows returns the total number of rows in the CSV data.

@@ -2,6 +2,8 @@ package excel
 
 import (
 	"archive/zip"
+	"bytes"
+	"context"
 	"reflect"
 
 	xlsx "github.com/tealeg/xlsx/v3"
@@ -26,20 +28,20 @@ type Reader struct {
 // Note: Currently, this reader only populates string-type struct fields.
 //
 // Parameters:
+//   - ctx: Cancels or times out reading the file
 //   - xlsxFile: The Excel file to read from
 //   - sheetName: The name of the sheet to read (empty string for first sheet)
 //
 // Returns:
 //   - A new Reader instance ready for use
 //   - err: Any error that occurred during file opening or sheet access
-func NewReader(xlsxFile fs.FileReader, sheetName string) (*Reader, error) {
-	fileReader, err := xlsxFile.OpenReadSeeker()
+func NewReader(ctx context.Context, xlsxFile fs.FileReader, sheetName string) (*Reader, error) {
+	data, err := xlsxFile.ReadAll(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer fileReader.Close()
 
-	zipReader, err := zip.NewReader(fileReader, xlsxFile.Size())
+	zipReader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +77,7 @@ func NewReader(xlsxFile fs.FileReader, sheetName string) (*Reader, error) {
 //
 // Example:
 //
-//	reader, err := excel.NewReader(file, "Sheet1")
+//	reader, err := excel.NewReader(ctx, file, "Sheet1")
 //	if err != nil {
 //	    return err
 //	}
@@ -184,7 +186,7 @@ func (r *Reader) ReadRow(rowIndex int, destStruct reflect.Value) error {
 //
 // Example:
 //
-//	reader, err := excel.NewReader(file, "Sales Data")
+//	reader, err := excel.NewReader(ctx, file, "Sales Data")
 //	if err != nil {
 //	    return err
 //	}
