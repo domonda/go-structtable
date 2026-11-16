@@ -199,9 +199,8 @@ func (htm *HTMLRenderer) WriteResultFile(file fs.File, perm ...fs.Permissions) e
 	if err != nil {
 		return err
 	}
-	defer writer.Close()
 
-	return htm.WriteResultTo(writer)
+	return closeOrAbortWriter(writer, htm.WriteResultTo(writer))
 }
 
 // MIMEType returns the MIME-Type of the rendered content.

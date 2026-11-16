@@ -134,7 +134,6 @@ func (txt *TextRenderer) WriteResultFile(file fs.File, perm ...fs.Permissions) e
 	if err != nil {
 		return err
 	}
-	defer writer.Close()
 
-	return txt.WriteResultTo(writer)
+	return closeOrAbortWriter(writer, txt.WriteResultTo(writer))
 }

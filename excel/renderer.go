@@ -2,6 +2,7 @@ package excel
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -435,9 +436,19 @@ func (excel *Renderer) WriteResultFile(file fs.File, perm ...fs.Permissions) err
 	if err != nil {
 		return err
 	}
-	defer writer.Close()
 
-	return excel.file.Write(writer)
+	err = excel.file.Write(writer)
+	if err != nil {
+		// Abort a writer that commits in Close, like an upload,
+		// so no partial data replaces the file.
+		if aborter, ok := writer.(fs.WriteAborter); ok {
+			return errors.Join(err, aborter.Abort())
+		}
+		return errors.Join(err, writer.Close())
+	}
+	// Writers of uploads commit the data in Close,
+	// so its error reports whether the file was written.
+	return writer.Close()
 }
 
 // MIMEType returns the MIME type for Excel files.
